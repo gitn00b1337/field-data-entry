@@ -4,6 +4,7 @@
     "slug": "field-data-entry",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "data-entry",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
@@ -14,17 +15,41 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.appsforgood.datacollection",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "plugins": [
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "LANDSCAPE"
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "node_modules/@expo-google-fonts/fira-sans/FiraSans_500Medium.ttf"
+          ]
+        }
+      ],
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Required if you wish to save form images."
+        }
+      ]
+    ],
+    "ios": {
+      "bundleIdentifier": "com.appsforgood.datacollection"
     }
   }
 }
