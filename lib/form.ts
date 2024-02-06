@@ -9,6 +9,34 @@ export type FormEntry = {
     [fieldName: string]: string
 }
 
+export function sanitizeConfig(config: FormConfig): FormConfig {
+    if (!config) {
+        throw new Error(`Cannot sanitize undefined config`);
+    }
+
+    let newConfig: FormConfig = {
+        ...config,
+        screens: config.screens || []
+    }
+
+    console.log('Sanitizing')
+    console.log(config)
+    
+    for (const screen of newConfig.screens) {
+        if (!screen) {
+            continue;
+        }
+
+        screen.rows = screen.rows || [];
+
+        for (const row of screen.rows) {
+            row.fields = row.fields?.filter(f => !!f) || [];
+        }
+    }
+
+    return newConfig;
+}
+
 export function createForm(config: FormConfig, entry?: FormEntry): Form {    
     return {
         config,
@@ -22,7 +50,7 @@ export function createForm(config: FormConfig, entry?: FormEntry): Form {
  * @returns The form entry for formik
  */
 export function getEntryInitialValues(form: Form, previousEntry: FormEntry = {}) {
-    let entry: FormEntry = {};
+    let entry: FormEntry = {};    
     
     for (const screen of form.config.screens) {
         for (const row of screen.rows) {

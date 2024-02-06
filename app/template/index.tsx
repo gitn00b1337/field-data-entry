@@ -10,20 +10,14 @@ export default function CreateTemplateScreen() {
     const router = useRouter();
 
     async function handleSubmit(values: FormConfig, formikHelpers: FormikHelpers<FormConfig>) {
-        console.log(`Submitting form...`);
-
         await saveConfiguration(values)
             .then((result) => {
                 if (result.insertId) {
-                    console.log(result)
-                    console.log('Redirecting...')
                     router.push(`template/${result.insertId}`)
                 }
                 else {
                     console.log('No insert id!');
                     console.log(result)
-                    console.log('rows:')
-                    console.log(result.rowsAffected)
                 }
             })
             .catch((e) => {

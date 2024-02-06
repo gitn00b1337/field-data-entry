@@ -1,40 +1,39 @@
-import { NavButton } from '../../components/nav-button';
-import { StyleSheet, Text, View, Button, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-
-// export type HomeScreenProps = {
-
-// }
+import { HomeTab } from './_home-tab';
 
 export default function HomeScreen() {
 
     return (
-        <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingRight: 150, }}>
-            <Text style={styles.header}>APOPO Data Collection</Text>
-            <View>
-                <View>
-
+        <ScrollView contentContainerStyle={{ 
+            flexGrow: 1, 
+            justifyContent: 'center', 
+            flexDirection: 'row', 
+        }}>
+            <View style={styles.container}>
+                <Text style={styles.header}>APOPO Data Collection</Text>
+                <View style={{ 
+                    flexGrow: 1, 
+                }}>
+                    <HomeTab
+                    />
                 </View>
             </View>
-            </ScrollView>
-        </SafeAreaView>
+        </ScrollView>
     )
 }
 
 const styles = StyleSheet.create({
     container: {
         flexGrow: 1, 
-        alignItems: 'center', 
-        justifyContent: 'flex-start',
         backgroundColor: '#FFFFFF',
+        maxWidth: 1200,
     },
     header: {
         fontSize: 22,
         fontWeight: 'bold',
         alignSelf: 'center',
-        marginBottom: 12,
+        paddingVertical: 24,
       },
       buttonContainer: {
         display: 'flex',

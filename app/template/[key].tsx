@@ -16,12 +16,12 @@ export default function Config() {
     useEffect(() => {
         loadConfiguration(configId)
             .then(result => {
-                console.log('Load result::')
-                console.log(result)
                 setConfig(result);
+                setLoadingError('');
             })
-            .catch(() => {
-                setLoadingError('An error occured loading the configuration.');            
+            .catch(e => {
+                setLoadingError('An error occured loading the configuration.');    
+                console.error(e);        
             })
     }, []);
 
@@ -38,35 +38,31 @@ export default function Config() {
             });
     }
 
-    console.log(config)
-
+    if (loadingError) {
+        return (
+            <View>
+                <Text>{ loadingError }</Text>
+            </View>
+        )
+    }
+    else if (!config) {
+        return (
+            <View>
+                 <Text>Loading...</Text>
+            </View>
+        )
+    }
     return (
-        <View>
-            {
-                loadingError && (
-                    <Text>{ loadingError }</Text>
-                )
-            }
-            {
-                config && (
-                    <Formik
-                        initialValues={config}
-                        onSubmit={handleSubmit}
-                    >
-                        {(props) => (
-                            <TemplateForm
-                                {...props}
-                                showDrawer={true}
-                            />
-                        )}
-                    </Formik>
-                )
-            }
-            {
-                !config && (
-                    <Text>Loading...</Text>
-                )
-            }
-        </View>
+        <Formik
+            initialValues={config}
+            onSubmit={handleSubmit}
+        >
+            {(props) => (
+                <TemplateForm
+                    {...props}
+                    showDrawer={true}
+                />
+            )}
+        </Formik>
     )
 }

@@ -1,10 +1,11 @@
 import { Platform } from "react-native";
 import * as SQLite from "expo-sqlite";
 import { SQLError, SQLResultSet, SQLTransaction } from "expo-sqlite";
-import { dbActions } from "./storage";
 import { FormConfig } from "./config";
+import { sanitizeConfig } from "./form";
+import { Migration, getPendingMigrations } from "./database-migrations";
 
-export type DbActionKey = keyof typeof dbActions;
+// export type DbActionKey = keyof typeof dbActions;
 
 let databaseCreated = false;
 let creating: Promise<any>;
@@ -63,6 +64,49 @@ const runTransaction: DbTransaction = (sql, params = []) => {
     });
 }
 
+/**
+ * Transforms callback into promise version of expo sqlite db transactions.
+ * NB: DOES NOT WAIT for tables to be created before running
+ * @param sql SQL command string
+ * @param params Any params required for the sql
+ * @returns Promise of the result set
+ */
+const runTransactionDangerous: DbTransaction = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        console.log('DB created, running transaction...')
+        
+        function onComplete(_: SQLTransaction, resultSet: SQLResultSet) {
+            console.log('Transaction complete')
+            return resolve(resultSet);
+        }
+
+        function onError(_: SQLTransaction, error: SQLError) {
+            reject(error?.message || 'An error occured running a transaction query.');
+            return true; // return true to rollback
+        }
+
+        function onTransactionError(error: SQLError) {
+            const reason = error?.message || 'An error occured creating a transaction.';
+            console.error(reason);
+            reject(reason);
+        }
+
+        function onTransactionSuccess() {
+            console.log('Transaction success.')
+        }
+
+        try {
+            database.transaction((tx) => {
+                tx.executeSql(sql, params, onComplete, onError)
+            }, onTransactionError, onTransactionSuccess)
+        }
+        catch (e) {
+            console.error(e);
+            return reject(e?.message || `An error ocurred running ${sql}`);
+        }
+    });
+}
+
 function createTable(name: string, sql: string, params?: any[]): Promise<SQLite.SQLResultSet> {
     return new Promise((resolve, reject) => {
         function onComplete(_: SQLTransaction, resultSet: SQLResultSet) {
@@ -99,7 +143,7 @@ function createTable(name: string, sql: string, params?: any[]): Promise<SQLite.
     })
 }
 
-function createConfigTableIfNotExists(db: SQLite.Database) {
+function createConfigTableIfNotExists() {
     const query = `
         create table if not exists configs (
             id INTEGER primary key not null,
@@ -113,12 +157,18 @@ function createConfigTableIfNotExists(db: SQLite.Database) {
 
 async function createDatabase() {
     creating = Promise.all([
-        createConfigTableIfNotExists(database),
+        createConfigTableIfNotExists(),
+        createMigrationTableIfNotExists(),
     ]);
 
     await creating;
 
+    await migrateDatabase();
+
     databaseCreated = true;
+    console.log('Database created')
+
+    return creating;
 }
 
 function openDatabase() {
@@ -225,7 +275,7 @@ export function loadConfiguration(configId: string): Promise<FormConfig> {
     }
 
     const params = [ configId ];
-    const sql = `SELECT * FROM configs WHERE id = ? LIMIT 1`;
+    const sql = `SELECT * FROM configs WHERE id = ? LIMIT 1;`;
 
     return runTransaction(sql, params)
         .then(result => {
@@ -238,6 +288,130 @@ export function loadConfiguration(configId: string): Promise<FormConfig> {
                 config.id = row.id;
             }            
 
-            return config;
+            if (!config) {
+                return config;
+            }
+            
+            return sanitizeConfig(config);
         });
+}
+
+export type ConfigurationOverview = {
+    id: string;
+    name: string;
+    updatedAt: string;
+}
+
+export function getConfigurations(): Promise<ConfigurationOverview[]> {
+    const params = [];
+    const sql = `SELECT id, name, updatedAt FROM configs;`;
+
+    return runTransaction(sql, params)
+        .then(result => {
+            let mapped: ConfigurationOverview[] = [];
+
+            for (let i = 0; i < result.rows.length; i++) {
+                const item = result.rows.item(i);
+
+                if (!item) {
+                    continue;
+                }
+
+                mapped.push({
+                    id: item.id,
+                    name: item.name,
+                    updatedAt: item.updatedAt,
+                });
+            }
+
+            return mapped;
+        });
+}
+
+function createMigrationTableIfNotExists() {
+    const sql = `CREATE TABLE IF NOT EXISTS migrations (
+        id INTEGER primary key not null,
+        lastRunIndex integer not null
+    );`;
+
+    return createTable('migrations', sql)
+        .then(() => {
+            runTransaction(`INSERT INTO migrations(lastRunIndex) values (0);`)
+            .catch(e => {
+                console.error('An error occured adding migration info.');
+                console.error(e);
+            })
+        });
+}
+
+
+function getMigrationIndex() {
+    const sql = `SELECT * FROM migrations LIMIT 1;`;
+    
+    return runTransactionDangerous(sql)
+        .then(result => {
+            const row = result.rows.item(0);
+
+            if (!row) {
+                throw new Error(`No migration data found!`);
+            }
+
+            return row.lastRunIndex;
+        })
+        .catch(e => {
+            console.error('An error occured getting migration index!');
+            throw e;
+        })
+}
+
+function updateMigrationIndex(lastRanMigrationIndex: number) {
+    const sql = `UPDATE migrations SET lastRunIndex = ?;`;
+    const params = [ lastRanMigrationIndex ];
+
+    return runTransactionDangerous(sql, params);
+}
+
+async function runMigrations(migrations: Migration[]): Promise<number> {
+    let count = 0;
+
+    try {
+        for (const { sql, params, } of migrations) {
+            console.log('Running migration.')
+    
+            await runTransactionDangerous(sql, params);
+            count = count + 1;             
+        }
+    }
+    catch (e) {        
+        // handled above.
+        return count;
+    }
+
+    return count;
+}
+
+async function migrateDatabase() {
+    try {
+        console.log('Migrating db...')
+        const index = await getMigrationIndex();
+        console.log(`Migration index: ${index}`);
+
+        const migrations = getPendingMigrations(index);
+        console.log(migrations);
+        const migrationsRan = await runMigrations(migrations);
+
+        if (migrationsRan > 0) {
+            console.log(`Updating migration index to ${index + migrationsRan}`);
+            await updateMigrationIndex(index + migrationsRan);
+        }        
+
+        if (migrationsRan !== migrations.length) {
+            throw new Error(`An error occured running migration ${index + migrationsRan}`)
+        }
+
+        console.log('DB migrations complete.');
+    }
+    catch (e) {
+        console.error(e);
+    }
 }
