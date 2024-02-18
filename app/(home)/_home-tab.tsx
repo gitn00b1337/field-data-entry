@@ -15,12 +15,15 @@ import {
 } from 'react-native-paper-tabs';
 import { getConfigurations } from '../../lib/database';
 import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 
-export function HomeTab() {
+export function HomeTabs() {
     const [templates, setTemplates] = useState<DataListItem[]>([]);
     const [entries, setEntries] = useState<DataListItem[]>([]);
     const [pageError, setPageError] = useState('');
     const router = useRouter();
+    const [tabIndex, setTabIndex] = useState(0);
+    const isFocused = useIsFocused();
 
     useEffect(() => {
         console.log('getting configurations')
@@ -42,7 +45,7 @@ export function HomeTab() {
                 console.error(e);
                 setPageError('An error occured loading configrations.');
             })
-    }, []);
+    }, [ isFocused ]);
 
     function handleTemplateClick(item: DataListItem) {
         router.push(item.url);
@@ -57,7 +60,8 @@ export function HomeTab() {
             // alignItems: 'center'
         }}>
             <TabsProvider
-                defaultIndex={0}
+                defaultIndex={tabIndex}
+                onChangeIndex={index => setTabIndex(index)}
             >
                 <Tabs
                     style={styles.tabs}
@@ -140,7 +144,6 @@ const styles = StyleSheet.create({
     tabHeader: {
         position: 'relative',
         backgroundColor: 'red',
-        zIndex: 1000,
         justifyContent: 'flex-start',
         alignItems: 'stretch',
         paddingBottom: 0,

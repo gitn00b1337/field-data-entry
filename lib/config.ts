@@ -7,9 +7,17 @@ export type FormConfig = {
     screens: FormScreenConfig[];
     position: number;
     imgSrc: string;
+    /**
+     * Configured actions to perform based on conditions set.
+     */
+    triggers: FormTrigger[];
 }
 
 export type FormScreenConfig = {
+    /**
+     * Unique (per form) key for this screen.
+     */
+    key: string;
     /**
      * The title of this screen
      */
@@ -29,7 +37,37 @@ export type FormScreenConfig = {
     rows: FormRow[];
 }
 
+export type FormActionType = 'LOOP';
+export type FormActionCondition = 'ALL_SET';
+
+/**
+ * Very simple form triggers which simply do something when
+ * all fields for the specified rows have a value. 
+ */
+export type FormTrigger = {
+    /**
+     * Screen key. Multi-screen triggers not supported.
+     */
+    screen: string;
+    /**
+     * Row keys for this trigger.
+     */
+    rows: string[];
+    /**
+     * Type of action to perform.
+     */
+    action: FormActionType;
+    /**
+     * POC, simple condition type.
+     */
+    condition: FormActionCondition;
+}
+
 export type FormRow = {
+    /**
+     * Unique (per form) key for this row.
+     */
+    key: string;
     /**
      * The fields for a given row.
      */
@@ -37,6 +75,10 @@ export type FormRow = {
 }
 
 export type FormFieldConfig = {
+    /**
+     * Unique (per form) key for this row.
+     */
+    key: string;
     label: string;
     type: FormFieldType;
     options: FormFieldOptionConfig[];
@@ -69,6 +111,7 @@ export function createFormRow({
     fields?: FormFieldConfig[]
 }): FormRow {
     return {
+        key: generateUUID(),
         fields,
     };
 }
@@ -88,6 +131,7 @@ export function createFieldConfig({
         options: [],
         name,
         multiSelect: false,
+        key: generateUUID(),
     };
 }
 
@@ -116,6 +160,7 @@ export function createFormScreenConfig({
         position,
         rows,
         nextBtnLabel,
+        key: generateUUID(),
     }
 }
 
@@ -127,7 +172,16 @@ export function createFormConfig(): FormConfig {
         screens: [],
         position: 0,
         imgSrc: '',
+        triggers: [],
     };
 }
 
+export function createTrigger(screen: string): FormTrigger {
+    return {
+        screen,
+        rows: [],
+        action: 'LOOP',
+        condition: 'ALL_SET',
+    };
+}
 

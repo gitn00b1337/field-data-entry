@@ -14,11 +14,12 @@ export type DataCollectionFormProps<T> = {
     form: Form;
     screenIndex: number;
     isDesignMode: boolean;
-    selectedRowIndex: number;
-    setSelectedRowIndex: (number: number) => void;
-    onRowPress: (rowNumber: number) => void;
-    onAddRowPress: () => void;
-    onChangeRowPress: (direction: Direction) => void;
+    selectedRowIndex?: number;
+    setSelectedRowIndex?: (number: number) => void;
+    onRowPress?: (rowNumber: number) => void;
+    onAddRowPress?: () => void;
+    onChangeRowPress?: (direction: Direction) => void;
+    onFieldPress?: (rowIndex: number, fueldIndex: number) => void;
 }
 
 export function DataCollectionForm<T>({
@@ -32,6 +33,7 @@ export function DataCollectionForm<T>({
     onRowPress,
     onAddRowPress,
     onChangeRowPress,
+    onFieldPress,
 }: DataCollectionFormProps<T>) {
     if (!form) {
         return null;
@@ -53,6 +55,7 @@ export function DataCollectionForm<T>({
                 onAddRowPress={onAddRowPress}
                 onChangeRowPress={onChangeRowPress}
                 onRowPress={onRowPress}
+                onFieldPress={onFieldPress}
             />
         )}
         </Formik>

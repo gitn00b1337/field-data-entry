@@ -1,28 +1,32 @@
 import { useGlobalSearchParams, } from "expo-router";
 import { View } from "react-native";
-import { Text } from "react-native-paper";
+import { Text, Snackbar } from "react-native-paper";
 import { loadConfiguration, saveConfiguration } from "../../lib/database";
 import { useEffect, useState } from "react";
 import { FormConfig, FormFieldConfig } from "../../lib/config";
 import { TemplateForm } from "./template-form";
 import { Formik, FormikHelpers } from "formik";
+import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
 
 export default function Config() {
     const params = useGlobalSearchParams();
     const configId = params.key as string;
     const [config, setConfig] = useState<FormConfig>();
     const [loadingError, setLoadingError] = useState('');
+    const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>()
 
     useEffect(() => {
         loadConfiguration(configId)
             .then(result => {
                 setConfig(result);
                 setLoadingError('');
+                console.log('Set config::')
+                console.log(result)
             })
             .catch(e => {
                 setLoadingError('An error occured loading the configuration.');    
                 console.error(e);        
-            })
+            });
     }, []);
 
     async function handleSubmit(values: FormConfig, formikHelpers: FormikHelpers<FormConfig>) {
@@ -31,10 +35,12 @@ export default function Config() {
         await saveConfiguration(values)
             .then((result) => {
                 console.log('Form saved')
+                setSnackbarOptions({ type: 'SUCCESS', message: 'Form Saved!' });
             })
             .catch((e) => {
                 // todo display error
                 console.error(e);
+                setSnackbarOptions({ type: 'ERROR', message: e?.message || 'An error occured saving, please try again.' });
             });
     }
 
@@ -52,17 +58,33 @@ export default function Config() {
             </View>
         )
     }
+    if (snackbarOptions) {
+        console.log(snackbarOptions)
+    }
+
     return (
-        <Formik
-            initialValues={config}
-            onSubmit={handleSubmit}
-        >
-            {(props) => (
-                <TemplateForm
-                    {...props}
-                    showDrawer={true}
-                />
-            )}
-        </Formik>
+        <>
+            {
+                !!snackbarOptions && (
+                    <FormSnackbar
+                        visible={!!snackbarOptions}
+                        onClose={() => setSnackbarOptions(undefined)}
+                        label={snackbarOptions?.message}
+                        type={snackbarOptions?.type}
+                    />
+                )
+            }
+            <Formik
+                initialValues={config}
+                onSubmit={handleSubmit}
+            >                
+                {(props) => (
+                    <TemplateForm
+                        {...props}
+                        showDrawer={true}
+                    />
+                )}
+            </Formik>
+        </>
     )
 }

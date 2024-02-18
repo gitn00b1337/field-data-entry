@@ -1,4 +1,5 @@
 import { FormConfig, FormFieldConfig, } from "./config"
+import { generateUUID } from "./utils";
 
 export type Form = {
     config: FormConfig;
@@ -16,28 +17,28 @@ export function sanitizeConfig(config: FormConfig): FormConfig {
 
     let newConfig: FormConfig = {
         ...config,
-        screens: config.screens || []
+        screens: config.screens?.filter(s => !!s) || [],
+        triggers: config.triggers || [],
     }
 
-    console.log('Sanitizing')
-    console.log(config)
-    
     for (const screen of newConfig.screens) {
-        if (!screen) {
-            continue;
-        }
-
-        screen.rows = screen.rows || [];
+        screen.rows = screen.rows?.filter(r => !!r) || [];
+        screen.key = screen.key || generateUUID();
 
         for (const row of screen.rows) {
             row.fields = row.fields?.filter(f => !!f) || [];
+            row.key = row.key || generateUUID();
+
+            for (const field of row.fields) {
+                field.key = field.key || generateUUID();
+            }
         }
     }
-
+    
     return newConfig;
 }
 
-export function createForm(config: FormConfig, entry?: FormEntry): Form {    
+export function createForm(config: FormConfig, entry: FormEntry = {}): Form {    
     return {
         config,
         entry,
@@ -53,9 +54,39 @@ export function getEntryInitialValues(form: Form, previousEntry: FormEntry = {})
     let entry: FormEntry = {};    
     
     for (const screen of form.config.screens) {
+        if (!screen) {
+            continue;
+        }
+
         for (const row of screen.rows) {
+            if (!row) {
+                continue;
+            }
+
             for (const field of row.fields) {
                 entry[field.name] = previousEntry[field.name] || '';
+            }
+        }
+    }
+    
+    return entry;
+}
+
+export function getFormInitialEntry(config: FormConfig) {
+    let entry: FormEntry = {};    
+    
+    for (const screen of config.screens) {
+        if (!screen) {
+            continue;
+        }
+
+        for (const row of screen.rows) {
+            if (!row) {
+                continue;
+            }
+
+            for (const field of row.fields) {
+                entry[field.name] = '';
             }
         }
     }

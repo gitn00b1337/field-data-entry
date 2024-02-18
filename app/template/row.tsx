@@ -10,6 +10,7 @@ export type FormConfigRowProps = {
     index: number;
     screenIndex: number;
     isDesignMode: boolean;
+    onFieldPress?: (rowIndex: number, fieldIndex: number) => void;
 }
 
 export function FormConfigRow({
@@ -19,6 +20,7 @@ export function FormConfigRow({
     onPress,
     screenIndex,
     isDesignMode,
+    onFieldPress,
 }: FormConfigRowProps) {
     if (!row) {
         return null;
@@ -29,11 +31,19 @@ export function FormConfigRow({
     const focusedStyle = isFocused && isDesignMode ? styles.border : {};
 
     function handlePress() {
-        if (!isDesignMode) {
+        if (!isDesignMode || !onPress) {
             return;
         }
 
         onPress(index);
+    }
+
+    function handleFieldPress(fieldIndex: number) {
+        if (!onFieldPress) {
+            return;
+        }
+
+        onFieldPress(index, fieldIndex);
     }
 
     return (
@@ -41,11 +51,11 @@ export function FormConfigRow({
             <View style={{ ...styles.row, ...focusedStyle,}}>
                 {
                     row.fields.map((field, fieldIndex) => {
-
                         return (
                             <FormField
                                 config={field}
                                 key={`screen${screenIndex}-row${index}-field${fieldIndex}`}
+                                onPress={() => handleFieldPress(fieldIndex)}
                             />
                         );
                     })
@@ -59,7 +69,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     container: {
         minWidth: 100,
         minHeight: 50,
-        paddingBottom: 12,
+        paddingBottom: 0,
         paddingRight: 24,        
     },
     border: {
@@ -72,5 +82,6 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         justifyContent: 'flex-start',
         alignContent: 'stretch',
         alignItems: 'stretch',
+        position: 'relative'
     }
 });

@@ -24,7 +24,7 @@ export function FormInput({
             value={value}
             onChangeText={text => helpers.setValue(text)}
             style={styles.field}
-            mode='outlined'
+            mode='flat'
             outlineColor={theme.colors.outline}
             textColor={theme.colors.onSurface}
             {...textInputProps}
@@ -34,8 +34,8 @@ export function FormInput({
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     field: {
+        backgroundColor: '#fff', 
+        flexGrow: 1,
         marginBottom: 12,
-        justifyContent: 'flex-start',
-        // maxWidth: 400,
     }
 });

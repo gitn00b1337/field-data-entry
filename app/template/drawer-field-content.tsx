@@ -1,10 +1,11 @@
 import { StyleSheet, View, } from "react-native";
 import { FormFieldConfig, createFieldOption, } from "../../lib/config";
-import { Button, Text, MD3Theme,  } from 'react-native-paper';
+import { Button, Text, MD3Theme, Menu,  } from 'react-native-paper';
 import React, { useEffect, useState } from 'react';
-import { FormSelect } from "../../components/form-select";
+import { FormSelectField } from "../../components/form-select";
 import { FormInput } from "../../components/form-input";
 import { FieldArray, FieldArrayRenderProps } from "formik";
+import { DotsPopupMenu } from "../../components/dots-popup-menu";
 
 type DrawerFieldContentProps = {
     theme: MD3Theme;
@@ -12,6 +13,7 @@ type DrawerFieldContentProps = {
     screenIndex: number;
     rowIndex: number;
     fieldIndex: number;
+    onDeletePress: (arrayHelper: FieldArrayRenderProps, index: number) => void;
 }
 
 type DropdownOption = {
@@ -34,9 +36,13 @@ export function DrawerFieldContent({
     fieldIndex,
     rowIndex,
     screenIndex,
+    onDeletePress,
 }: DrawerFieldContentProps) {
     const styles = makeStyles(theme);
     const [disableAddOption, setDisableAddOption] = useState(false);
+    const [visible, setVisible] = React.useState(false);
+    const openMenu = () => setVisible(true);
+    const closeMenu = () => setVisible(false);
 
     useEffect(() => {
         if (!field?.options) {
@@ -68,86 +74,89 @@ export function DrawerFieldContent({
     }
 
     return (
-        <View style={styles.navContainer}>
-            <View style={styles.row}>
-                <Text style={styles.header}>Edit Field</Text>
-            </View>
-            {
-                field && (
-                    <FieldArray
-                        name={`${name}.options`}
-                        render={(arrayHelper) => (
-                            <View style={{ width: '100%' }}>
-                                <View style={styles.row}>
-                                    <FormInput
-                                        fieldName={`${name}.label`}
-                                        label={'Label'}
-                                        value={field.label}
-                                        style={styles.fieldInput}
-                                    />
-                                </View>
-                                <View style={styles.row}>
-                                    <FormSelect
-                                        fieldName={`${name}.type`}
-                                        value={field.type}
-                                        label='Field Type'
-                                        options={typeOptions}
-                                        containerStyle={styles.fieldInput}
-                                    />
-                                </View>
-                                {
-                                    field.type === 'SELECT' && (
-                                        <View style={styles.options}>
-                                            <View style={styles.optionsHeader}>
-                                                <Text style={styles.optionsHeaderText}>Dropdown Options</Text>
-                                            </View>
-                                            {
-                                                field.type === 'SELECT' && field.options?.map((option, opIndex) => {
-                                                    const opName = `${name}.options[${opIndex}]`;
+        <FieldArray
+            name={`screens[${screenIndex}].rows[${rowIndex}].fields`}
+            render={arrayHelper => (
+                <View style={styles.navContainer}>
+                    <View style={styles.row}>
+                        <Text style={styles.header}>Edit Field</Text>
+                        <DotsPopupMenu
+                             actions={[
+                                { key: 'delete', label: 'Delete', onPress: () => onDeletePress(arrayHelper, fieldIndex) }
+                             ]}
+                        />
+                    </View>
+                    {
+                        field && (
+                            <>
+                            <FieldArray
+                                name={`${name}.options`}
+                                render={(arrayHelper) => (
+                                    <View style={{ width: '100%' }}>
+                                        <View style={styles.row}>
+                                            <FormInput
+                                                fieldName={`${name}.label`}
+                                                label={'Label'}
+                                                value={field.label}
+                                            />
+                                        </View>
+                                        <View style={[styles.row]}>
+                                            <FormSelectField
+                                                fieldName={`${name}.type`}
+                                                label='Field Type'
+                                                options={typeOptions}
+                                            />
+                                        </View>
+                                        {
+                                            field.type === 'SELECT' && (
+                                                <View style={styles.options}>
+                                                    <View style={styles.optionsHeader}>
+                                                        <Text style={styles.optionsHeaderText}>Dropdown Options</Text>
+                                                    </View>
+                                                    {
+                                                        field.options?.map((option, opIndex) => {
+                                                            const opName = `${name}.options[${opIndex}]`;
 
-                                                    return (
-                                                        <View style={styles.optionRow} key={opName}>
-                                                            <FormInput
-                                                                fieldName={`${opName}.label`}
-                                                                value={option.label}
-                                                                label='Label'
-                                                                style={styles.option}
-                                                            />
-                                                            <FormInput
-                                                                fieldName={`${opName}.value`}
-                                                                value={option.value}
-                                                                label='Value'
-                                                                style={styles.option}
-                                                            />
-                                                        </View>
-                                                    )
-                                                })
-                                            }
-                                            {
-                                                field.type === 'SELECT' && (
+                                                            return (
+                                                                <View style={styles.optionRow} key={opName}>
+                                                                    <FormInput
+                                                                        fieldName={`${opName}.label`}
+                                                                        value={option.label}
+                                                                        label='Label'
+                                                                    />
+                                                                    <FormInput
+                                                                        fieldName={`${opName}.value`}
+                                                                        value={option.value}
+                                                                        label='Value'
+                                                                    />
+                                                                </View>
+                                                            )
+                                                        })
+                                                    }
                                                     <View style={styles.addOptionContainer}>
                                                         <Button disabled={disableAddOption} onPress={() => handleAddOption(arrayHelper)}>
                                                             Add Option
                                                         </Button>
                                                     </View>
-                                                )
-                                            }
-                                        </View>
-                                    )
-                                }
+                                                </View>
+                                            )
+                                        }
+                                    </View>
+                                )}
+                            />
+                            </>
+                        )
+                    }
+                    {
+                        !field && (
+                            <View style={styles.row}>
+                                <Text style={styles.noSelectionText}>No field selected.</Text>
                             </View>
-                        )}
-                    />
-                )
-            }
-            {
-                !field && (
-                    <View style={styles.row}>
-                        <Text style={styles.noSelectionText}>No field selected.</Text>
-                    </View>
-                )
-            }
-        </View>
+                        )
+                    }
+                </View>
+            )}
+        />
     )
 }
 
@@ -163,7 +172,8 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignItems: 'stretch',
         paddingHorizontal: 12,
         borderWidth: 1,
-        borderRadius: 5,
+        borderColor: theme.colors.outlineVariant,
+        borderRadius: 0,
         paddingVertical: 24,
         margin: 12,
     },
@@ -227,6 +237,8 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignItems: 'stretch',
         alignContent: 'stretch',
         paddingHorizontal: 12,
+        display: 'flex',
+        marginBottom: 12,
     },
     noSelectionText: {
         paddingLeft: 24,
@@ -234,7 +246,23 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     header: {
         fontWeight: '700',
         flexGrow: 1,
-        paddingHorizontal: 24,
+        paddingHorizontal: 14,
         paddingVertical: 12,
     },
+    menuButton: {
+
+    },
+    actionsMenu: {
+        marginTop: 10,
+        marginLeft: 12,
+        opacity: 1,
+    },
+    actionsContent: {
+        backgroundColor: 'white',
+        borderRadius: 0,
+        borderWidth: 1,
+        borderColor: theme.colors.outlineVariant,
+        shadowRadius: 0,
+        opacity: 1,
+    }
 })

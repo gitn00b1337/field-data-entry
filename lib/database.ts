@@ -269,7 +269,7 @@ export function deleteConfiguration(config: FormConfig) {
     return runTransaction(sql, [ config.id ]);
 }
 
-export function loadConfiguration(configId: string): Promise<FormConfig> {
+export function loadConfiguration(configId: string): Promise<FormConfig | undefined> {
     if (!configId) {
         throw new Error(`No config id provided. Cannot load configuration!`);
     }
@@ -280,7 +280,7 @@ export function loadConfiguration(configId: string): Promise<FormConfig> {
     return runTransaction(sql, params)
         .then(result => {
             const row = result.rows.item(0);
-            const config =  row?.config;
+            const config = row?.config ? JSON.parse(row.config) : undefined;
             
             if (config) {
                 // first save isnt quite accurate, but since
@@ -293,6 +293,10 @@ export function loadConfiguration(configId: string): Promise<FormConfig> {
             }
             
             return sanitizeConfig(config);
+        })
+        .catch(e => {
+            console.error(e);
+            return undefined;
         });
 }
 

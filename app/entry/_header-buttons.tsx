@@ -3,18 +3,18 @@ import { Text } from "react-native-paper";
 import { NavButton } from "../../components/nav-button";
 
 export type HeaderButtonsProps = {
-    onSubmitForm: () => void;
-    onDiscardForm: () => void;
+    onSaveEntry: () => void;
+    onDiscardEntry: () => void;
 }
 
 export function HeaderButtons({
-    onSubmitForm,
-    onDiscardForm,
+    onSaveEntry,
+    onDiscardEntry,
 }: HeaderButtonsProps) {
     return (
         <View style={styles.container}>
-            <NavButton text='Save' onPress={onSubmitForm} />
-            <NavButton text='Discard' onPress={onDiscardForm} variant='SECONDARY' />
+            <NavButton text='Save' onPress={onSaveEntry} />
+            <NavButton text='Discard' onPress={onDiscardEntry} variant='SECONDARY' />
         </View>
     )
 }

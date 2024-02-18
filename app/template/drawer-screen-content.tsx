@@ -1,7 +1,8 @@
 import { StyleSheet, TouchableOpacity, View, } from "react-native";
 import { FormScreenConfig, } from "../../lib/config";
-import { Text,  MD3Theme, } from 'react-native-paper';
+import { Text,  MD3Theme, Button, } from 'react-native-paper';
 import React from 'react';
+import { DotsPopupMenu } from "../../components/dots-popup-menu";
 
 export type DrawerScreenContentProps = {
     theme: MD3Theme;
@@ -9,6 +10,7 @@ export type DrawerScreenContentProps = {
     screens: FormScreenConfig[];
     screenIndex: number;
     onAddScreenPress: () => void;
+    onDeleteScreenPress: () => void;
 }
 
 export function DrawerScreenContent({
@@ -16,17 +18,13 @@ export function DrawerScreenContent({
     onScreenChange,
     screens,
     screenIndex,
-    onAddScreenPress
+    onAddScreenPress,
+    onDeleteScreenPress,
 }: DrawerScreenContentProps) {
     const styles = makeStyles(theme);
 
     return (
         <View style={styles.navContainer}>
-            <TouchableOpacity onPress={() => onScreenChange(-1)} style={{ ...styles.row, ...(screenIndex === -1 ? styles.activeRow : {}) }}>
-                <Text style={styles.header}>
-                    Form Settings
-                </Text>
-            </TouchableOpacity>
             <View style={styles.screensContainer}>
                 <View style={styles.row}>
                     <Text style={styles.header}>
@@ -35,25 +33,34 @@ export function DrawerScreenContent({
                 </View>
                 {
                     screens.map((screen, index) => (
-                        <TouchableOpacity
-                            key={`navbar-screen-${index}`}
-                            onPress={() => onScreenChange(index)}
+                        <View 
+                            key={`screen-${index}`}
                             style={{ ...styles.row, ...styles.screenRow, ...(screenIndex === index ? styles.activeRow : {}) }}
                         >
-                            <Text style={styles.label}>
-                                {`${screen.title || `Screen ${index + 1}`}`}
-                            </Text>
-                        </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => onScreenChange(index)}
+                                style={{ flexGrow: 1, }}
+                            >
+                                <Text style={styles.label}>
+                                    {`${screen.title || `Screen ${index + 1}`}`}
+                                </Text>
+                            </TouchableOpacity>
+                            <View style={{ justifyContent: 'center'}}>
+                                <DotsPopupMenu
+                                    size={20}
+                                    actions={[
+                                        { key: 'delete', label: 'Delete', onPress: () => onDeleteScreenPress() }
+                                    ]}
+                                />
+                            </View>
+                        </View>
                     ))
                 }
-                <TouchableOpacity
-                    onPress={onAddScreenPress}
-                    style={{ ...styles.row, ...styles.screenRow, ...styles.addScreenBtn }}
-                >
-                    <Text style={{ ...styles.label, color: theme.colors.onPrimary, }}>
-                        Add Screen
-                    </Text>
-                </TouchableOpacity>
+                <View style={styles.row}>
+                    <View style={{ flexGrow: 1, }}>
+                        <Button onPress={onAddScreenPress}>Add Screen</Button>
+                    </View>
+                </View>
             </View>
         </View>
     )

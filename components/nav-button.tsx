@@ -1,25 +1,26 @@
 import { Button } from 'react-native-paper';
 import { useTheme } from 'react-native-paper';
 import { StyleSheet, } from 'react-native';
-import { useNavigation } from 'expo-router';
 
 export type NavButtonProps = {
     text: string;
     onPress: () => void;
+    variant?: 'PRIMARY' | 'SECONDARY'
 }
 
 export function NavButton({
     text,
     onPress,
+    variant = 'PRIMARY',
 }: NavButtonProps) {
     const theme = useTheme();
-    const navigation = useNavigation();
+    const isPrimary = variant === 'PRIMARY';
 
     return (
         <Button 
             mode="contained-tonal"
-            buttonColor={theme.colors.primary}
-            textColor='#fff'
+            buttonColor={isPrimary ? theme.colors.primary : '#fff'}
+            textColor={isPrimary ? '#fff' : 'rgb(96, 103, 112)'}
             labelStyle={styles.label}
             onPress={onPress}
             style={styles.button}

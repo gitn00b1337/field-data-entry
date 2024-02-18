@@ -15,11 +15,12 @@ export type DataCollectionFormScreenProps<T> = {
     form: Form;
     screenIndex: number;
     isDesignMode: boolean;
-    selectedRowIndex: number;
-    setSelectedRowIndex: (number: number) => void;
-    onRowPress: (rowNumber: number) => void;
-    onAddRowPress: () => void;
-    onChangeRowPress: (direction: Direction) => void;
+    selectedRowIndex?: number;
+    setSelectedRowIndex?: (number: number) => void;
+    onRowPress?: (rowNumber: number) => void;
+    onFieldPress?: (rowIndex: number, fieldIndex: number) => void;
+    onAddRowPress?: () => void;
+    onChangeRowPress?: (direction: Direction) => void;
 }
 
 export function DataCollectionFormScreen<T>({
@@ -32,6 +33,7 @@ export function DataCollectionFormScreen<T>({
     onAddRowPress,
     onChangeRowPress,
     onRowPress,
+    onFieldPress,
 }: DataCollectionFormScreenProps<T>) {
     const theme = useTheme();
     const styles = makeStyles(theme);
@@ -44,15 +46,27 @@ export function DataCollectionFormScreen<T>({
         return null;
     }
 
+    function handleRowPress(rowIndex: number) {
+        if (typeof onRowPress === 'function') {
+            onRowPress(rowIndex);
+        }
+    }
+
+    function handleChangeRowPress(direction: Direction) {
+        if (typeof onChangeRowPress === 'function') {
+            onChangeRowPress(direction);
+        }
+    }
+
     return (
-        <View>
+        <View style={{ flexGrow: 1, }}>
             <FieldArray name={`${fieldName}.rows`}
                 render={(rowArrayHelper) => (                
                     <View style={styles.container}>                     
-                        <View>
+                        {/* <View>
                             <Text>{ screen.title || `Screen ${screenIndex + 1}` }</Text>
-                        </View>
-                        <View style={{ marginBottom: 72, }}>
+                        </View> */}
+                        <View style={{ marginBottom: 84, flexGrow: 1, }}>
                         {
                             screen.rows.map((row, rowIndex) => {
                                 const isFocused = rowIndex === selectedRowIndex;
@@ -62,10 +76,11 @@ export function DataCollectionFormScreen<T>({
                                         key={`screen${screenIndex}-row${rowIndex}`}
                                         row={row}
                                         isFocused={isFocused}
-                                        onPress={() => onRowPress(rowIndex)}
+                                        onPress={() => handleRowPress(rowIndex)}
                                         index={rowIndex}
                                         screenIndex={screenIndex}
                                         isDesignMode={isDesignMode}
+                                        onFieldPress={onFieldPress}
                                     />
                                 )
                             })
@@ -76,20 +91,20 @@ export function DataCollectionFormScreen<T>({
                                 <>
                                     <FAB
                                         icon="plus"
-                                        style={{ ...styles.fab, }}
-                                        onPress={() => onAddRowPress()}
+                                        style={{ ...styles.fab, right: 12 }}
+                                        onPress={onAddRowPress}
                                         color={theme.colors.onPrimary}
                                     />
                                     <FAB
                                         icon="arrow-up-bold"
-                                        style={{ ...styles.fab, right: 70, backgroundColor: theme.colors.background, }}
-                                        onPress={() => onChangeRowPress('UP')}
+                                        style={{ ...styles.fab, right: 82, backgroundColor: theme.colors.background, }}
+                                        onPress={() => handleChangeRowPress('UP')}
                                         color={theme.colors.secondary}
                                     />
                                     <FAB
                                         icon="arrow-down-bold"
-                                        style={{ ...styles.fab, right: 140, backgroundColor: theme.colors.background, }}
-                                        onPress={() => onChangeRowPress('DOWN')}
+                                        style={{ ...styles.fab, right: 152, backgroundColor: theme.colors.background, }}
+                                        onPress={() => handleChangeRowPress('DOWN')}
                                         color={theme.colors.secondary}
                                     />
                                 </>
