@@ -1,4 +1,4 @@
-import { useGlobalSearchParams, } from "expo-router";
+import { useGlobalSearchParams, useRouter, } from "expo-router";
 import { View } from "react-native";
 import { Text, Snackbar } from "react-native-paper";
 import { loadConfiguration, saveConfiguration } from "../../lib/database";
@@ -13,21 +13,25 @@ export default function Config() {
     const configId = params.key as string;
     const [config, setConfig] = useState<FormConfig>();
     const [loadingError, setLoadingError] = useState('');
-    const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>()
+    const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
+    const router = useRouter();
 
     useEffect(() => {
         loadConfiguration(configId)
             .then(result => {
                 setConfig(result);
                 setLoadingError('');
-                console.log('Set config::')
-                console.log(result)
             })
             .catch(e => {
                 setLoadingError('An error occured loading the configuration.');    
                 console.error(e);        
             });
     }, []);
+
+    if (!configId) {
+        router.push('/');
+        return null;
+    }
 
     async function handleSubmit(values: FormConfig, formikHelpers: FormikHelpers<FormConfig>) {
         console.log(`Submitting form...`);

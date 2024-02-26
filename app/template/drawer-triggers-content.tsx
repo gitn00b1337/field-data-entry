@@ -1,21 +1,25 @@
 import { View, StyleSheet, } from "react-native";
 import { Button, IconButton, MD3Theme, Text, useTheme, } from "react-native-paper";
 import { FormInput } from "../../components/form-input";
-import { FormConfig, FormScreenConfig, createTrigger } from "../../lib/config";
+import { FormConfig, FormFieldConfig, FormScreenConfig, FormTrigger, createTrigger } from "../../lib/config";
 import { FieldArray, FieldArrayRenderProps } from "formik";
 import { FormSelectField } from "../../components/form-select";
 import { FormMultiSelectField } from "../../components/form-multiselect";
+import { FormCheckBox } from "../../components/form-checkbox";
+import { useEffect, useState } from "react";
 
 type DrawerTriggersContentProps = {
     theme: MD3Theme;
     form: FormConfig;
     screen: FormScreenConfig;
+    screenIndex: number;
 }
 
 export function DrawerTriggersContent({
     theme,
     form,
     screen,
+    screenIndex,
 }: DrawerTriggersContentProps) {
     const styles = makeStyles(theme);
 
@@ -31,38 +35,23 @@ export function DrawerTriggersContent({
 
     return (
         <FieldArray
-            name='triggers'
+            name={`screens[${screenIndex}].triggers`}
             render={(arrayHelper) => (
                 <View style={styles.navContainer}>
                     <View style={styles.headerContainer}>
                         <Text style={styles.header}>Form Triggers</Text>
                     </View>
                     {
-                        form.triggers.map((trigger, index) => {
-                            return (
-                                <View 
-                                    key={`trigger-${index}`}
-                                    style={styles.triggerContainer}
-                                >
-                                    <View style={{ backgroundColor: 'red'}}>
-                                        <FormMultiSelectField
-                                            fieldName={`triggers[${index}].rows`}
-                                            label='When rows...'
-                                            options={screen.rows.map((row, rowIndex) => {
-                                                return {
-                                                    label: `Row ${rowIndex+1}`,
-                                                    value: row.key,
-                                                }
-                                            })}
-                                            
-                                        />
-                                    </View>
-                                    <View>
-                                        <Text style={styles.triggerDesc}>Have all fields filled in, create a new set of these rows.</Text>
-                                    </View>
-                                </View>
-                            )
-                        })
+                        screen.triggers.map((trigger, index) => (
+                            <FormTriggerConfig 
+                                key={`formtrigger-${index}`} 
+                                trigger={trigger} 
+                                index={index} 
+                                screen={screen}
+                                onDeletePress={() => arrayHelper.remove(index)}
+                                screenIndex={screenIndex}
+                            />
+                        ))
                     }
                     <View style={[styles.row, { flexDirection: 'column' }]}>
                         <View style={styles.addFieldDivider} />
@@ -86,9 +75,105 @@ export function DrawerTriggersContent({
         />
 
     )
-
-
 }
+
+type FormTriggerConfigProps = {
+    trigger: FormTrigger;
+    index: number;
+    screen: FormScreenConfig;
+    onDeletePress: () => void;
+    screenIndex: number;
+}
+
+function FormTriggerConfig({
+    trigger,
+    index,
+    screen,
+    onDeletePress,
+    screenIndex,
+}: FormTriggerConfigProps) {
+    const [fieldsAvailable, setFieldsAvailable] = useState<FormFieldConfig[]>([]);
+    const theme = useTheme();
+    const triggerStyles = makeTriggerStyles(theme);
+    const fieldOptions = [
+        ...fieldsAvailable.map((f, fIndex) => {
+            return {
+                label: f.label || 'New field' ,
+                value: f.key,
+            }
+        }),
+    ]
+
+    useEffect(() => {
+        const fields = trigger.rows.reduce<FormFieldConfig[]>((fields, rowKey) => {
+            const row = screen.rows.find(r => r.key === rowKey);
+
+            if (!row?.fields) {
+                return fields;
+            }
+
+            return [
+                ...fields,
+                ...row?.fields,
+            ]
+        }, []);
+
+        setFieldsAvailable(fields);
+    }, [ trigger.rows ]);    
+  
+    return (
+        <View 
+            key={`trigger-${index}`}
+            style={triggerStyles.triggerContainer}
+        >         
+            <View>
+                <FormMultiSelectField
+                    fieldName={`screens[${screenIndex}].triggers[${index}].rows`}
+                    label='Target Row(s)'
+                    options={screen.rows.map((row, rowIndex) => {
+                        return {
+                            label: `Row ${rowIndex+1}`,
+                            value: row.key,
+                        }
+                    })}
+                />
+            </View>
+            <View>
+                <FormMultiSelectField
+                    fieldName={`screens[${screenIndex}].triggers[${index}].fields`}
+                    label='Target field(s)'
+                    options={fieldOptions}    
+                    hasAllOption={true}   
+                    allOptionLabel="All Fields"                                         
+                />
+            </View>
+            <View>
+                <FormSelectField
+                    fieldName={`screens[${screenIndex}].triggers[${index}].action`}
+                    label='Action'
+                    options={[{ value: 'COPY_ROWS', label: 'Copy Rows' }]}                                         
+                />
+            </View>
+        </View>
+    )
+}
+
+const makeTriggerStyles = (theme: MD3Theme) => StyleSheet.create({
+    triggerDesc: {
+        flexGrow: 1,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+    },
+    triggerContainer: {
+        flexDirection: 'column',
+        width: '100%',
+        paddingHorizontal: 12,
+        borderBottomColor: theme.colors.surface,
+        borderBottomWidth: 4,
+        paddingBottom: 24,
+        marginBottom: 24,
+    },
+})
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     navContainer: {
@@ -97,11 +182,6 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignItems: 'flex-start',
         justifyContent: 'flex-start',
         flexDirection: 'column',
-    },
-    triggerContainer: {
-        flexDirection: 'column',
-        width: '100%',
-        paddingHorizontal: 12,
     },
     headerContainer: {
         flexDirection: 'row',
@@ -164,10 +244,6 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 12,
     },
-    triggerDesc: {
-        flexGrow: 1,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-    }
+    
 })
 

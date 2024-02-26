@@ -70,7 +70,7 @@ export function DrawerMenu({
                     <DrawerScreenContent
                         theme={theme}
                         onScreenChange={onScreenChange}
-                        screens={screens}
+                        form={form}
                         screenIndex={screenIndex}
                         onAddScreenPress={onAddScreenPress}
                         onDeleteScreenPress={onDeleteScreenPress}
@@ -120,6 +120,7 @@ export function DrawerMenu({
                         theme={theme}
                         form={form}
                         screen={screens[screenIndex]}
+                        screenIndex={screenIndex}
                     />
                 )
             }

@@ -18,7 +18,6 @@ import {
   FiraSans_900Black,
 } from '@expo-google-fonts/fira-sans';
 import { Stack, router, useRouter } from 'expo-router';
-import { HeaderButtons } from '../components/header-buttons';
 import { HeaderTitle } from '../components/header-title';
 import { configureGlobalState } from './global-state';
 
@@ -70,7 +69,6 @@ export default function App() {
                 fontWeight: 'bold',
               },
               headerBackVisible: false,
-              headerRight: () => <HeaderButtons />,
               headerTitle: () => <HeaderTitle />,
               contentStyle: {
                 backgroundColor: theme.colors.background,

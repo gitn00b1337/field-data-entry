@@ -4,6 +4,7 @@ import { View, StyleSheet, Text } from "react-native";
 import { FormFieldProps } from "./form-field";
 import { Dropdown, } from 'react-native-element-dropdown';
 import { MD3Theme, useTheme } from "react-native-paper";
+import { deferredEffect } from "../lib/effect";
 
 export type FormSelectProps = {
     fieldName: string;
@@ -13,6 +14,7 @@ export type FormSelectProps = {
         value: string;
     }[];
     onFocus?: () => void;
+    onChange?: (val: string) => void;
 }
 
 export function FormSelectField({
@@ -20,6 +22,7 @@ export function FormSelectField({
     label,
     options,
     onFocus,
+    onChange,
 }: FormSelectProps) {
     const [field, meta, helpers] = useField(fieldName);
     const [isFocus, setIsFocus] = useState(false);
@@ -31,12 +34,18 @@ export function FormSelectField({
         if (isFocus && onFocus) {
             onFocus();
         }
-    }, [isFocus])
+    }, [isFocus]);
+
+    deferredEffect(() => {
+      if (typeof onChange === 'function') {
+        onChange(field.value);
+      }   
+    }, [ field.value ]);
 
     return (
         <View style={styles.container}>
             <Text style={[styles.label, isFocus && { color: theme.colors.primary }]}>
-                { label }
+                { label || 'New Field' }
             </Text>
             <Dropdown
                 style={[styles.dropdown, isFocus && { borderColor: theme.colors.primary }]}
@@ -57,7 +66,7 @@ export function FormSelectField({
                 onBlur={() => setIsFocus(false)}
                 onChange={item => {
                     helpers.setValue(item.value);
-                    setIsFocus(false);
+                    setIsFocus(false);     
                 }}
             />
         </View>
@@ -73,9 +82,11 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.outlineVariant,
       flexGrow: 1,
+      justifyContent: 'center',
+      alignContent: 'center',
+      // alignItems: 'center'
     },
     dropdown: {
-      height: 40,
       paddingHorizontal: 4,
       paddingBottom: 0,
       marginBottom: 0,

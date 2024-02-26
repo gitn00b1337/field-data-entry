@@ -1,5 +1,4 @@
 import { View, StyleSheet } from "react-native";
-import { Text } from "react-native-paper";
 import { NavButton } from "../../components/nav-button";
 
 export type HeaderButtonsProps = {

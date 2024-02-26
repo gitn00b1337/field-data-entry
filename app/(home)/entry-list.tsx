@@ -1,32 +1,60 @@
 import { TouchableOpacity, View, StyleSheet } from "react-native";
 import { Text } from "react-native-paper";
+import { ActivityIndicator, MD2Colors } from 'react-native-paper';
 
-export type TemplateListItem = {
+export type EntryListItem = {
     name: string;
     url: string;
-    lastUpdatedAt: string;
-    id: number;
+    id: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
-export type TemplateListProps = {
-    items: TemplateListItem[];
-    onItemClick: (item: TemplateListItem) => void;
+export type EntryListProps = {
+    items: EntryListItem[];
+    onItemClick: (item: EntryListItem) => void;
+    loading: boolean;
 }
 
-export function TemplateList({
+export function EntryList({
     items,
     onItemClick,
-}: TemplateListProps) {
+    loading,
+}: EntryListProps) {
+    if (loading) {
+        return (
+            <View style={{ paddingTop: '10%'}}>
+                <ActivityIndicator 
+                    animating={true} 
+                    color={MD2Colors.blue800} 
+                    size='large'
+                />
+            </View>
+        )
+    }
+
     if (!items.length) {
         return (
             <View>
-                <Text>You have no saved templates. Click the "Create Template" button to create a new form template.</Text>
+                <Text>You have no saved entries for this form template. Click the "Create Entry" button to create a new entry.</Text>
             </View>
         )
     }
 
     return (
         <View style={styles.list}>
+            <View style={styles.listRow}>
+                <View style={styles.listDataCol}>
+                    <Text>Entry</Text>
+                </View>
+                <View style={styles.listDataCol}>
+                    <Text>Created At</Text>
+                </View>
+                <View style={styles.listDataCol}>
+                    <Text>Updated At</Text>
+                </View>
+            </View>
+            
             {
                 items.map((item, index) => {
                     return (
@@ -42,7 +70,10 @@ export function TemplateList({
                                 <Text>{ item.name || 'Not named.'} </Text>
                             </View>
                             <View style={styles.listDataCol}>
-                                <Text>{ item.lastUpdatedAt }</Text>
+                                <Text>{ item.createdAt }</Text>
+                            </View>
+                            <View style={styles.listDataCol}>
+                                <Text>{ item.updatedAt }</Text>
                             </View>
                         </TouchableOpacity>
                     )

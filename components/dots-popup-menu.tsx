@@ -39,7 +39,6 @@ export const DotsPopupMenu = ({
         };
 
         setMenuAnchor(anchor);
-        console.log('Opening menu...')
         openMenu();
     }
 

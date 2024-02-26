@@ -1,23 +1,61 @@
-import { View } from "react-native";
-import { Checkbox, CheckboxItemProps } from "react-native-paper";
+import { useField } from "formik";
+import { StyleSheet, View } from "react-native";
+import { Checkbox, CheckboxItemProps, MD3Theme, useTheme } from "react-native-paper";
+import { FieldComponentProps } from "./form-field";
+import { useEffect, useRef } from "react";
 
-export type FormInputProps = {
-    fieldName: string;
-    value: string;
-    label: string
-} & CheckboxItemProps
-
-export function FormCheckBox({
-    fieldName,
-    value,
-    label,
+export function CheckboxField({
+    config,
+    onChange,
+    onPress,
     ...checkboxProps
-}: FormInputProps) {
+}: FieldComponentProps & Omit<CheckboxItemProps, "status" | "label">) {
+    const theme = useTheme();
+    const [field, meta, helpers] = useField(config.name);
+    const styles = makeStyles(theme);
+    const valueChanged = useRef(false);
+
+    console.log(field);
+
+    function handlePress() {
+        const val = !field.value; 
+        helpers.setValue(val);
+
+        if (typeof onPress === 'function') {
+            onPress();
+        }
+    }
+
+    useEffect(() => {
+        if (valueChanged.current 
+            && typeof onChange === 'function'
+            && meta.touched
+        ) {
+            onChange(field.value);
+        } 
+
+        valueChanged.current = true;
+    }, [ field.value ]);
+    
     return (
-        <View>
-            <Checkbox
+       <View style={styles.container}>
+            <Checkbox.Item
                 {...checkboxProps}
+                label={config.label || 'New Field'}
+                status={field.value == true ? 'checked' : 'unchecked'}
+                onPress={handlePress}            
             />
-        </View>
+       </View>
     )
 }
+
+const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    container: {
+        backgroundColor: '#fff',
+        borderRadius: theme.roundness, 
+        borderBottomWidth: 1, 
+        borderBottomColor: theme.colors.outlineVariant, 
+        flexGrow: 1, 
+        justifyContent: 'center'
+    }
+});

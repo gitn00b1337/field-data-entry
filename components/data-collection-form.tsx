@@ -1,17 +1,13 @@
-import { FieldArray, Formik } from "formik";
-import { View, StyleSheet } from "react-native";
-import { Form } from "../lib/form";
-import { FormScreenConfig } from "../lib/config";
-import { FormField } from "./form-field";
-import { MD3Theme, useTheme, Text } from "react-native-paper";
+import { Formik, FormikConfig, FormikProps } from "formik";
 import React from "react";
-import { FormConfigRow } from "../app/template/row";
-import { DataCollectionFormScreen, Direction } from "./data-collection-form-screen";
+import { FormScreen, Direction } from "./form-screen";
+import { FormEntryV2, } from "../lib/config";
+import { FormGlobalButtons } from "./form-global-buttons";
 
 export type DataCollectionFormProps<T> = {
     initialValues: T;
     onSubmit: (values: T) => void;
-    form: Form;
+    form: FormEntryV2;
     screenIndex: number;
     isDesignMode: boolean;
     selectedRowIndex?: number;
@@ -20,9 +16,12 @@ export type DataCollectionFormProps<T> = {
     onAddRowPress?: () => void;
     onChangeRowPress?: (direction: Direction) => void;
     onFieldPress?: (rowIndex: number, fueldIndex: number) => void;
+    formRef?: React.Ref<FormikProps<T>>;
+    onDiscardPress: (isDirty: boolean) => void;
+    onDeleteFormPress: () => void;
 }
 
-export function DataCollectionForm<T>({
+export function DataCollectionForm({
     initialValues,
     onSubmit,
     form,
@@ -34,7 +33,10 @@ export function DataCollectionForm<T>({
     onAddRowPress,
     onChangeRowPress,
     onFieldPress,
-}: DataCollectionFormProps<T>) {
+    formRef,
+    onDiscardPress,
+    onDeleteFormPress,
+}: DataCollectionFormProps<FormEntryV2>) {
     if (!form) {
         return null;
     }
@@ -43,29 +45,61 @@ export function DataCollectionForm<T>({
         <Formik
             initialValues={initialValues}
             onSubmit={onSubmit}
+            innerRef={formRef}
+            enableReinitialize
         >
-        {({ values, submitForm }) => (
-            <DataCollectionFormScreen
-                onSubmit={onSubmit}
-                form={form}
-                screenIndex={screenIndex}
-                isDesignMode={isDesignMode}
-                selectedRowIndex={selectedRowIndex}
-                setSelectedRowIndex={setSelectedRowIndex}
-                onAddRowPress={onAddRowPress}
-                onChangeRowPress={onChangeRowPress}
-                onRowPress={onRowPress}
-                onFieldPress={onFieldPress}
-            />
+        {({ values, submitForm, dirty, }) => (
+            <>
+                <FormScreen
+                    form={values}
+                    screenIndex={screenIndex}
+                    isDesignMode={isDesignMode}
+                    selectedRowIndex={selectedRowIndex}
+                    onRowPress={onRowPress}
+                    onFieldPress={onFieldPress}                    
+                />
+                <FormGlobalButtons 
+                    isDesignMode={isDesignMode}
+                    fields={values.globalFields}
+                    entry={values.values}
+                    setSelectedRowIndex={setSelectedRowIndex}
+                    onAddRowPress={onAddRowPress}
+                    onChangeRowPress={onChangeRowPress}
+                    onSubmitForm={submitForm}
+                    onDiscardForm={() => onDiscardPress(dirty)}
+                    onDeleteForm={onDeleteFormPress}
+                />
+            </>
         )}
         </Formik>
     )
 }
 
-const makeStyles = (theme: MD3Theme) => StyleSheet.create({
-    row: {
-        width: '100%',
-        paddingBottom: 12,
-        flexDirection: 'row',
+function FormWrap({
+    isDesignMode,
+    children,
+    initialValues,
+    onSubmit,
+    innerRef,
+}: {
+    isDesignMode: boolean;
+    children: ((props: FormikProps<FormEntryV2>) => React.ReactNode) | React.ReactNode;
+} & FormikConfig<FormEntryV2>) {
+    if (isDesignMode) {
+        return (
+            <>
+                { children }
+            </>
+        )           
     }
-});
+
+    return (
+        <Formik
+            initialValues={initialValues}
+            onSubmit={onSubmit}
+            innerRef={innerRef}
+        >
+        {children}
+        </Formik>
+    )
+}

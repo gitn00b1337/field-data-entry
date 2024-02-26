@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { FieldArray, useField } from 'formik';
+import { useField } from 'formik';
 import { View, StyleSheet, Text } from "react-native";
-import { FormFieldProps } from "./form-field";
 import { MultiSelect, } from 'react-native-element-dropdown';
 import { MD3Theme, useTheme } from "react-native-paper";
+import { deferredEffect } from "../lib/effect";
 
 export type FormMultiSelectFieldProps = {
     fieldName: string;
@@ -13,6 +13,9 @@ export type FormMultiSelectFieldProps = {
         value: string;
     }[];
     onFocus?: () => void;
+    hasAllOption?: boolean;
+    allOptionLabel?: string;
+    onChange?: (vals: string[]) => void;
 }
 
 export function FormMultiSelectField({
@@ -20,6 +23,9 @@ export function FormMultiSelectField({
     label,
     options,
     onFocus,
+    hasAllOption = false,
+    allOptionLabel = 'All Options',
+    onChange,
 }: FormMultiSelectFieldProps) {
     const [field, meta, helpers] = useField(fieldName);
     const [isFocus, setIsFocus] = useState(false);
@@ -28,8 +34,8 @@ export function FormMultiSelectField({
     const theme = useTheme();
     const styles = makeStyles(theme);
 
-    console.log('field value::')
-    console.log(field.value)
+    // console.log('field value::')
+    // console.log(field.value)
 
     useEffect(() => {
         if (isFocus && onFocus) {
@@ -37,12 +43,20 @@ export function FormMultiSelectField({
         }
     }, [isFocus]);
 
-    useEffect(() => {
+    deferredEffect(() => {
         const newPlaceholder = getPlaceholder();
         setPlaceholder(newPlaceholder);
+
+        if (typeof onChange === 'function') {
+            onChange(field.value);
+        }
     }, [ field.value ]);
 
     function getPlaceholder() {
+        if (hasAllOption && !field.value?.length) {
+            return allOptionLabel;
+        }
+
         if (!Array.isArray(field.value) || field.value.length < 1) {
             return 'Select items...';
         }

@@ -1,5 +1,5 @@
 import { StyleSheet, View, } from "react-native";
-import { FormFieldConfig, createFieldOption, } from "../../lib/config";
+import { FormFieldConfig, FormFieldType, createFieldOption, } from "../../lib/config";
 import { Button, Text, MD3Theme, Menu,  } from 'react-native-paper';
 import React, { useEffect, useState } from 'react';
 import { FormSelectField } from "../../components/form-select";
@@ -18,16 +18,17 @@ type DrawerFieldContentProps = {
 
 type DropdownOption = {
     label: string;
-    value: string;
+    value: FormFieldType;
 }
 type DropdownOptions = DropdownOption[];
 
 const typeOptions: DropdownOptions = [
-    { label: 'Text', value: 'TEXT' },
-    { label: 'Numeric', value: 'NUMERIC' },
-    { label: 'Whole Number', value: 'WHOLE_NUMBER' },
-    { label: 'Dropdown', value: 'SELECT' },
-    { label: 'Timer', value: 'TIMER' },
+    { label: 'Text', value: 'TEXT', },
+    { label: 'Numeric', value: 'NUMERIC', },
+    { label: 'Whole Number', value: 'WHOLE_NUMBER', },
+    { label: 'Dropdown', value: 'SELECT', },
+    { label: 'Checkbox', value: 'CHECKBOX', },
+    // { label: 'Timer', value: 'TIMER' },
 ];
 
 export function DrawerFieldContent({
@@ -54,8 +55,8 @@ export function DrawerFieldContent({
     }, [ field?.options ])
 
     if (screenIndex === -1 || rowIndex === -1 || fieldIndex === -1 || !field) {
-        console.log(`Screen ${screenIndex} row ${rowIndex} field ${fieldIndex}`)
-        console.log(field);
+        // console.log(`Screen ${screenIndex} row ${rowIndex} field ${fieldIndex}`)
+        // console.log(field);
         
         return (
             <View style={styles.navContainer}>

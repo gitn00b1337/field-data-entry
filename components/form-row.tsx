@@ -1,19 +1,21 @@
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { FormRow } from "../../lib/config"
+import { FormEntryRow, FormFieldV2  } from "../lib/config"
 import { MD3Theme, useTheme } from "react-native-paper";
-import { FormField } from "../../components/form-field";
+import { FormField } from "./form-field";
 
-export type FormConfigRowProps = {
-    row: FormRow;
+export type FormRowProps = {
+    row: FormEntryRow;
     isFocused: boolean;
     onPress: (index: number) => void;
     index: number;
     screenIndex: number;
     isDesignMode: boolean;
     onFieldPress?: (rowIndex: number, fieldIndex: number) => void;
+    onFieldChange?: (field: FormFieldV2, value: any) => void;
+    loopIndex?: number;
 }
 
-export function FormConfigRow({
+export function FormRow({
     row,
     isFocused,
     index,
@@ -21,7 +23,9 @@ export function FormConfigRow({
     screenIndex,
     isDesignMode,
     onFieldPress,
-}: FormConfigRowProps) {
+    loopIndex = 0,
+    onFieldChange,
+}: FormRowProps) {
     if (!row) {
         return null;
     }
@@ -56,6 +60,7 @@ export function FormConfigRow({
                                 config={field}
                                 key={`screen${screenIndex}-row${index}-field${fieldIndex}`}
                                 onPress={() => handleFieldPress(fieldIndex)}
+                                onChange={onFieldChange}
                             />
                         );
                     })

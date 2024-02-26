@@ -1,27 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
     IconButton,
     Text,
 } from 'react-native-paper';
-import { getConfigurations } from '../../lib/database';
+import { getConfigurations, getEntries } from '../../lib/database';
 import { Stack, useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
 import { TemplateList, TemplateListItem } from './template-list';
 import { HeaderButtons } from './_header-buttons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { EntryList, EntryListItem } from './entry-list';
+import moment from 'moment';
 
 export default function HomeScreen() {
     const [templates, setTemplates] = useState<TemplateListItem[]>([]);
-    const [entries, setEntries] = useState<TemplateListItem[]>([]);
+    const [entries, setEntries] = useState<EntryListItem[]>([]);
     const [pageError, setPageError] = useState('');
     const router = useRouter();
     const [tabIndex, setTabIndex] = useState(0);
     const isFocused = useIsFocused();
     const [selectedTemplate, setSelectedTemplate] = useState<TemplateListItem>();
+    const [loadingEntries, setLoadingEntries] = useState(false);
 
     useEffect(() => {
-        console.log('getting configurations');
+        if (!isFocused) {
+            return;
+        }
+
         getConfigurations()
             .then(results => {
                 const configs = results?.map<TemplateListItem>(r => {
@@ -38,8 +44,48 @@ export default function HomeScreen() {
             .catch(e => {
                 console.error(e);
                 setPageError('An error occured loading configrations.');
-            })
+            });
     }, [isFocused]);
+
+    useEffect(() => {
+        if (!selectedTemplate) {
+            setEntries([]);
+            return;
+        }
+
+        setLoadingEntries(true);
+
+        getEntries(selectedTemplate.id)
+            .then(results => {
+                const entries = results?.map<EntryListItem>(r => {
+                    const createdAt = moment(r.createdAt).isValid() 
+                        ? moment.utc(r.createdAt).local().format('HH:mm DD-MM-YYYY').toString()
+                        : '';
+
+                    const updatedAt = moment(r.updatedAt).isValid()
+                        ? moment.utc(r.updatedAt).local().format('HH:mm DD-MM-YYYY').toString()
+                        : '';
+
+                    return {
+                        createdAt,
+                        updatedAt,
+                        id: r.id,
+                        name: r.name,
+                        url: `entry/${r.id}`,
+                    };
+                });
+
+                setEntries(entries);
+            })
+            .catch(e => {
+                console.error(e);
+                setPageError('An error occured loading configrations.');
+            })
+            .finally(() => {
+                setLoadingEntries(false);
+            });
+
+    }, [ selectedTemplate ])
 
     function handleTemplateClick(item: TemplateListItem) {
         setSelectedTemplate(item);
@@ -107,17 +153,16 @@ export default function HomeScreen() {
                                     onPress={handleBackClick}
                                 />
                                 <Text style={[styles.header, styles.templateHeader]}>{`${selectedTemplate.name}`}</Text>
-
                             </View>
                             <View style={{
                                 flexGrow: 1,
                             }}>
                                 <View style={{ flex: 1 }}>
-                                    {
-                                        !entries.length && (
-                                            <Text>You have no saved entries for this form template. Click the "Create Entry" button to create a new entry.</Text>
-                                        )
-                                    }
+                                    <EntryList
+                                        items={entries}
+                                        onItemClick={entry => router.push(entry.url)}
+                                        loading={loadingEntries}
+                                    />
                                 </View>
                             </View>
                         </View>

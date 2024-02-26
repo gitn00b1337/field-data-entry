@@ -1,13 +1,11 @@
 import { Platform } from "react-native";
 import * as SQLite from "expo-sqlite";
 import { SQLError, SQLResultSet, SQLTransaction } from "expo-sqlite";
-import { FormConfig } from "./config";
+import { FormConfig, FormEntryV2 } from "./config";
 import { sanitizeConfig } from "./form";
 import { Migration, getPendingMigrations } from "./database-migrations";
+import moment from "moment";
 
-// export type DbActionKey = keyof typeof dbActions;
-
-let databaseCreated = false;
 let creating: Promise<any>;
 
 const DB_NAME = "fielddb.db";
@@ -44,7 +42,7 @@ const runTransaction: DbTransaction = (sql, params = []) => {
                 }
         
                 function onTransactionSuccess() {
-                    console.log('Transaction success.')
+                    console.log('runTransaction: Transaction success.')
                 }
 
                 try {
@@ -92,7 +90,7 @@ const runTransactionDangerous: DbTransaction = (sql, params = []) => {
         }
 
         function onTransactionSuccess() {
-            console.log('Transaction success.')
+            console.log('runTransactionDangerous: Transaction success.')
         }
 
         try {
@@ -127,7 +125,7 @@ function createTable(name: string, sql: string, params?: any[]): Promise<SQLite.
         }
 
         function onTransactionSuccess() {
-            console.log('Transaction success.')
+            console.log('createTable: Transaction success.')
         }
 
         try {
@@ -165,7 +163,6 @@ async function createDatabase() {
 
     await migrateDatabase();
 
-    databaseCreated = true;
     console.log('Database created')
 
     return creating;
@@ -179,30 +176,8 @@ function openDatabase() {
     return SQLite.openDatabase(DB_NAME);
 }
 
-// type DispatchDbAction = <T extends DbActionKey>(actionIdentifier: T, payload?: Parameters<typeof dbActions[T]>) => any;
-
-// export const useDatabase = (): [DbTransaction, DispatchDbAction] => {
-//     const dispatch: DispatchDbAction = (actionIdentifier, payload) => {
-//         const action = dbActions[actionIdentifier];
-
-//         if (typeof action !== 'function') {
-//             throw new Error(`Invalid db action ${action}`);
-//         }
-
-//         return action.apply(this, ...payload);
-//     }
-
-//     try {
-//         return [runTransaction, dispatch];
-//     }
-//     catch {
-//         throw new Error(`Unable to set up database, storage not supported!`);
-//     }
-// }
-
-// open the database connection - one global connection
-
 const database = openDatabase();
+
 // create the tables. queries shouldnt run until tables have been created/migrated
 createDatabase()
     .catch(e => {
@@ -256,6 +231,67 @@ export function saveConfiguration(config: FormConfig): Promise<SQLite.SQLResultS
     }
 }
 
+function updateEntry(entry: FormEntryV2): Promise<SQLite.SQLResultSet> {
+    if (!entry.id) {
+        throw new Error(`Configuration cannot be updated. It must have an ID!`);
+    }
+
+    const withUpdatedTS: FormEntryV2 = {
+        ...entry,
+        updatedAt:  moment().utc().toISOString(),
+    };
+
+    console.log('Updating entry...')
+    console.log(withUpdatedTS.id)
+    
+    const sql = `
+        update entries
+        set name = ?,
+            entry = ?,
+            configId = ?,
+            updatedAt = ?
+        where id = ?;
+    `;
+
+    const params = [
+        withUpdatedTS.name,
+        JSON.stringify(withUpdatedTS),
+        withUpdatedTS.configId,
+        withUpdatedTS.updatedAt,
+        withUpdatedTS.id,
+    ];
+
+    return runTransaction(sql, params);
+}
+
+function createEntry(entry: FormEntryV2): Promise<SQLite.SQLResultSet> {
+    const params = [
+        entry.name,
+        JSON.stringify(entry),
+        entry.configId,
+        entry.createdAt,
+        entry.updatedAt,
+    ];
+
+    const sql = `INSERT OR IGNORE INTO entries (name, entry, configId, createdAt, updatedAt) values (?, ?, ?, ?, ?)`;
+
+    return runTransaction(sql, params);
+}
+
+export async function saveEntry(entry: FormEntryV2): Promise<number> {
+    if (!entry) {
+        throw new Error(`No entry provided!`);
+    }
+    else if (entry.id) {
+        await updateEntry(entry);
+        return entry.id;
+    }
+    else {
+        const resultSet = await createEntry(entry);
+        return resultSet.insertId;
+    }
+}
+
 export function deleteConfiguration(config: FormConfig) {
     if (!config.id) {
         throw new Error(`Configuration cannot be deleted. It must have an ID!`);
@@ -266,10 +302,25 @@ export function deleteConfiguration(config: FormConfig) {
         where id = ?
     `;
 
+    console.log('Deleting configuration...')
     return runTransaction(sql, [ config.id ]);
 }
 
-export function loadConfiguration(configId: string): Promise<FormConfig | undefined> {
+export function deleteEntry(entry: FormEntryV2) {
+    if (!entry.id) {
+        throw new Error(`Form entry cannot be deleted. It must have an ID!`);
+    }
+
+    const sql = `
+        delete from entries
+        where id = ?
+    `;
+
+    console.log('Deleting entry...')
+    return runTransaction(sql, [ entry.id ]);
+}
+
+export async function loadConfiguration(configId: string): Promise<FormConfig | undefined> {
     if (!configId) {
         throw new Error(`No config id provided. Cannot load configuration!`);
     }
@@ -277,95 +328,142 @@ export function loadConfiguration(configId: string): Promise<FormConfig | undefi
     const params = [ configId ];
     const sql = `SELECT * FROM configs WHERE id = ? LIMIT 1;`;
 
-    return runTransaction(sql, params)
-        .then(result => {
-            const row = result.rows.item(0);
-            const config = row?.config ? JSON.parse(row.config) : undefined;
-            
-            if (config) {
-                // first save isnt quite accurate, but since
-                // its not exposed can just correct the id here
-                config.id = row.id;
-            }            
+    try {
+        const result = await runTransaction(sql, params);
+        const row = result.rows.item(0);
+        const config = row?.config ? JSON.parse(row.config) : undefined;
+        
+        if (config) {
+            // first save isnt quite accurate, but since
+            // its not exposed can just correct the id here
+            config.id = row.id;
+        }            
 
-            if (!config) {
-                return config;
-            }
-            
-            return sanitizeConfig(config);
-        })
-        .catch(e => {
-            console.error(e);
-            return undefined;
-        });
+        if (!config) {
+            return config;
+        }
+        
+        return sanitizeConfig(config);
+    }
+    catch (e) {
+        console.error(e);
+        return undefined;
+    }
+}
+
+export async function loadEntry(entryId: string): Promise<FormEntryV2 | undefined> {
+    if (!entryId) {
+        throw new Error(`No entry id provided. Cannot load entry!`);
+    }
+
+    const params = [ entryId ];
+    const sql = `SELECT * FROM entries WHERE id = ? LIMIT 1;`;
+
+    try {
+        const result = await runTransaction(sql, params);
+        const row = result.rows.item(0);
+        const entry = row?.entry ? JSON.parse(row.entry) : undefined;
+
+        if (entry) {
+            // first save isnt quite accurate, but since
+            // its not exposed can just correct the id here
+            entry.id = row.id;
+        }
+        return entry;
+    } catch (e) {
+        console.error(e);
+        return undefined;
+    }
 }
 
 export type ConfigurationOverview = {
-    id: string;
+    id: number;
     name: string;
     updatedAt: string;
 }
 
-export function getConfigurations(): Promise<ConfigurationOverview[]> {
-    const params = [];
-    const sql = `SELECT id, name, updatedAt FROM configs;`;
-
-    return runTransaction(sql, params)
-        .then(result => {
-            let mapped: ConfigurationOverview[] = [];
-
-            for (let i = 0; i < result.rows.length; i++) {
-                const item = result.rows.item(i);
-
-                if (!item) {
-                    continue;
-                }
-
-                mapped.push({
-                    id: item.id,
-                    name: item.name,
-                    updatedAt: item.updatedAt,
-                });
-            }
-
-            return mapped;
-        });
+export type EntriesOverview = {
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
-function createMigrationTableIfNotExists() {
+export async function getConfigurations(): Promise<ConfigurationOverview[]> {
+    const params = [];
+    const sql = `SELECT id, name, updatedAt FROM configs;`;
+    
+    const result = await runTransaction(sql, params);
+    let mapped: ConfigurationOverview[] = [];
+    for (let i = 0; i < result.rows.length; i++) {
+        const item = result.rows.item(i);
+
+        if (!item) {
+            continue;
+        }
+
+        mapped.push({
+            id: item.id,
+            name: item.name,
+            updatedAt: item.updatedAt,
+        });
+    }
+    return mapped;
+}
+
+export async function getEntries(configId: number): Promise<EntriesOverview[]> {
+    const params = [ configId ];
+    const sql = `SELECT id, name, createdAt, updatedAt FROM entries WHERE configId = ?;`;
+    
+    const result = await runTransaction(sql, params);
+    let mapped: EntriesOverview[] = [];
+    for (let i = 0; i < result.rows.length; i++) {
+        const item = result.rows.item(i);
+
+        if (!item) {
+            continue;
+        }
+
+        mapped.push({
+            id: item.id,
+            name: item.name,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+        });
+    }
+    return mapped;
+}
+
+async function createMigrationTableIfNotExists() {
     const sql = `CREATE TABLE IF NOT EXISTS migrations (
         id INTEGER primary key not null,
         lastRunIndex integer not null
     );`;
 
-    return createTable('migrations', sql)
-        .then(() => {
-            runTransaction(`INSERT INTO migrations(lastRunIndex) values (0);`)
-            .catch(e => {
-                console.error('An error occured adding migration info.');
-                console.error(e);
-            })
+    await createTable('migrations', sql);
+
+    runTransaction(`INSERT INTO migrations(lastRunIndex) values (0);`)
+        .catch(e => {
+            console.error('An error occured adding migration info.');
+            console.error(e);
         });
 }
 
-
-function getMigrationIndex() {
+async function getMigrationIndex() {
     const sql = `SELECT * FROM migrations LIMIT 1;`;
     
-    return runTransactionDangerous(sql)
-        .then(result => {
-            const row = result.rows.item(0);
+    try {
+        const result = await runTransactionDangerous(sql);
+        const row = result.rows.item(0);
 
-            if (!row) {
-                throw new Error(`No migration data found!`);
-            }
-
-            return row.lastRunIndex;
-        })
-        .catch(e => {
-            console.error('An error occured getting migration index!');
-            throw e;
-        })
+        if (!row) {
+            throw new Error(`No migration data found!`);
+        }
+        return row.lastRunIndex;
+    } catch (e) {
+        console.error('An error occured getting migration index!');
+        throw e;
+    }
 }
 
 function updateMigrationIndex(lastRanMigrationIndex: number) {

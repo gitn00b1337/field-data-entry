@@ -1,16 +1,15 @@
 import { ScrollView, StyleSheet, View, } from "react-native";
-import { FormConfig, FormFieldConfig, FormRow, createFieldConfig, createFormRow, createFormScreenConfig } from "../../lib/config";
-import { useTheme, Card, MD3Theme, } from 'react-native-paper';
+import { FormConfig, FormEntryV2, FormFieldConfig, FormRow, createFieldConfig, createFormRow, createFormScreenConfig, createFormV2 } from "../../lib/config";
+import { useTheme, MD3Theme, } from 'react-native-paper';
 import {  FieldArray, FieldArrayRenderProps, FormikProps, FormikHelpers } from 'formik';
-import { FormInput } from "../../components/form-input";
 import { useEffect, useState } from "react";
 import { DrawerMenu } from "./drawer";
 import { useGlobalState } from "../global-state";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { DataCollectionForm } from "../../components/data-collection-form";
-import { Form, FormEntry, createForm, getEntryInitialValues } from "../../lib/form";
-import { Stack, useRouter, } from "expo-router";
-import { HeaderButtons } from "./header-buttons";
+import { useRouter, } from "expo-router";
+import { deleteConfiguration } from "../../lib/database";
+import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
 
 export type TemplateFormProps = {
     showDrawer: boolean;
@@ -28,17 +27,19 @@ const initFormSelections: FormSelections = {
     fieldIndex: -1,
 }
 
-export function TemplateForm({ handleSubmit, values, }: TemplateFormProps) {
+export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
     const [state, dispatch] = useGlobalState();
     const [formSelections, setFormSelections] = useState(initFormSelections);
     const router = useRouter();
 
+    const { values } = formProps;
     const screen = values.screens ? values.screens[formSelections.screenIndex] : undefined;
     const selectedRow: FormRow | undefined = screen?.rows ? screen?.rows[formSelections.rowIndex] : undefined;
     const selectedField: FormFieldConfig | undefined = selectedRow?.fields ? selectedRow?.fields[formSelections.fieldIndex] : undefined;
-    const [previewForm, setPreviewForm] = useState<{ form: Form, entry: FormEntry }>();
+    const [previewForm, setPreviewForm] = useState<FormEntryV2>();
+    const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
     const {
         screenIndex,
         rowIndex,
@@ -46,23 +47,33 @@ export function TemplateForm({ handleSubmit, values, }: TemplateFormProps) {
     } = formSelections;
 
     useEffect(() => {
-        const form = createForm(values);
-        const entry = getEntryInitialValues(form);
-
-        setPreviewForm({ form, entry });
-    }, [ formSelections ]);
+        console.log('creating form')
+        const form = createFormV2(values);
+        setPreviewForm(form);
+    }, [ formSelections, values.globalFields ]);
 
     useEffect(() => {
         dispatch('SET_DRAWER_VISIBLE', true);
         dispatch('SET_DRAWER_CONFIG_TYPE', 'NAV');
     }, []);
 
+    async function handleDeleteFormPress() {
+        try {
+            await deleteConfiguration(values);
+            router.replace('/');
+        }
+        catch (e) {
+            console.error(e);
+            setSnackbarOptions({ type: 'ERROR', message: e?.message || 'An error occured deleting, please try again.' });
+        }
+    }
+
     function handleDiscard() {
         if (router.canGoBack()) {
             router.back();
         }
         else {
-            router.push('/(home)/index');
+            router.push('/');
         }
     }
 
@@ -91,7 +102,7 @@ export function TemplateForm({ handleSubmit, values, }: TemplateFormProps) {
             fieldIndex,
         });
         dispatch('SET_DRAWER_CONFIG_TYPE', 'FIELD');
-        console.log(`Editing field ${fieldIndex}`);
+        // console.log(`Editing field ${fieldIndex}`);
     }
 
     function handleFieldPress(rowIndex: number, fieldIndex: number) {
@@ -233,17 +244,17 @@ export function TemplateForm({ handleSubmit, values, }: TemplateFormProps) {
 
     return (
         <GestureHandlerRootView style={{ flexGrow: 1, }}>
-            <Stack.Screen
-                options={{
-                    headerRight: () => (
-                        <HeaderButtons 
-                            onSubmitForm={handleSubmit} 
-                            onDiscardForm={handleDiscard}
+            <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: 'green' }}>
+                {
+                    !!snackbarOptions && (
+                        <FormSnackbar
+                            visible={!!snackbarOptions}
+                            onClose={() => setSnackbarOptions(undefined)}
+                            label={snackbarOptions?.message}
+                            type={snackbarOptions?.type}
                         />
                     )
-                }}
-            />
-            <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: 'green' }}>
+                }
                 <FieldArray
                     name='screens'
                     render={arrayHelper => (
@@ -290,13 +301,15 @@ export function TemplateForm({ handleSubmit, values, }: TemplateFormProps) {
                                                         })
                                                     }}
                                                     isDesignMode={true}
-                                                    initialValues={previewForm.entry}
-                                                    onSubmit={() => { }}
-                                                    form={previewForm.form}
+                                                    initialValues={previewForm}
+                                                    onSubmit={() => formProps.submitForm()}
+                                                    form={previewForm}
                                                     onAddRowPress={() => handleAddRowPress(rowArrayHelper)}
                                                     onChangeRowPress={handleMoveRow}
                                                     onRowPress={handleRowPress}
                                                     onFieldPress={handleFieldPress}
+                                                    onDiscardPress={handleDiscard}
+                                                    onDeleteFormPress={handleDeleteFormPress}
                                                 />
                                             )}
                                         />

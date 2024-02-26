@@ -1,17 +1,17 @@
 import { StyleSheet, View } from "react-native";
-import { FormConfig } from "../../lib/config";
+import { FormConfig, FormEntryV2 } from "../../lib/config";
 import { MD3Theme, Text, useTheme } from "react-native-paper";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { useState } from "react";
 
 type ScreenNavigatorProps = {
-    config: FormConfig;
+    form: FormEntryV2;
     screenIndex: number;
     setScreenIndex: (index: number) => void;
 }
 
 export function ScreenNavigator({
-    config,
+    form,
     screenIndex,
     setScreenIndex,
 }: ScreenNavigatorProps) {
@@ -22,7 +22,7 @@ export function ScreenNavigator({
         <View style={styles.container}>
             <View style={styles.positioner}>
                 {
-                    config.screens.map((screen, index) => {
+                    form.screens.map((screen, index) => {
                         const isActive = index === screenIndex;
 
                         return (
