@@ -1,5 +1,5 @@
-import { StyleSheet, View, } from "react-native";
-import { FormFieldConfig, FormFieldType, createFieldOption, } from "../../lib/config";
+import { NativeSyntheticEvent, StyleSheet, TextInputChangeEventData, View, } from "react-native";
+import { FormFieldConfig, FormFieldOptionConfig, FormFieldType, createFieldOption, } from "../../lib/config";
 import { Button, Text, MD3Theme, Menu,  } from 'react-native-paper';
 import React, { useEffect, useState } from 'react';
 import { FormSelectField } from "../../components/form-select";
@@ -74,6 +74,25 @@ export function DrawerFieldContent({
         arrayHelper.push(newOption);
     }
 
+    function handleOptionLabelChange(e: NativeSyntheticEvent<TextInputChangeEventData>, optionIndex: number, helper: FieldArrayRenderProps) {
+        const value = e?.nativeEvent?.text;
+        const option = field.options && field.options[optionIndex];
+        const isSelect = field.type === 'MULTI_SELECT' || field.type === 'SELECT';
+
+        // requested feature: if its a select, set the value as the label 
+        // but keep it overwritable. think will need to also check if touched v2 TODO.
+        if (typeof value !== 'string' || !option || !isSelect) {
+            return;
+        }
+
+        const newOp: FormFieldOptionConfig = {
+            ...option,
+            value,
+        };
+
+        helper.replace(optionIndex, newOp);
+    }
+
     return (
         <FieldArray
             name={`screens[${screenIndex}].rows[${rowIndex}].fields`}
@@ -124,6 +143,7 @@ export function DrawerFieldContent({
                                                                         fieldName={`${opName}.label`}
                                                                         value={option.label}
                                                                         label='Label'
+                                                                        onChange={e => handleOptionLabelChange(e, opIndex, arrayHelper)}
                                                                     />
                                                                     <FormInput
                                                                         fieldName={`${opName}.value`}

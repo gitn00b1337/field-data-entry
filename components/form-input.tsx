@@ -1,11 +1,12 @@
-import { StyleSheet } from "react-native";
+import { NativeSyntheticEvent, StyleSheet, TextInputChangeEventData } from "react-native";
 import { MD3Theme, TextInput, TextInputProps, useTheme } from "react-native-paper";
-import { useField, Form, FormikProps, Formik } from 'formik';
+import { useField, Form, FormikProps, Formik, FieldMetaProps, FieldHelperProps } from 'formik';
+import { useEffect } from "react";
 
 export type FormInputProps = {
     fieldName: string;
     value: string;
-    label: string
+    label: string;
 } & TextInputProps
 
 export function FormInput({
@@ -17,6 +18,7 @@ export function FormInput({
     const theme = useTheme();
     const [field, meta, helpers] = useField(fieldName);
     const styles = makeStyles(theme);
+
 
     return (
         <TextInput

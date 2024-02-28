@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useEffect, useReducer, useState} from 'react';
+import { useEffect, useState} from 'react';
 import { DrawerConfigType } from './template/drawer';
 
 export type GlobalStateAction = (state: GlobalState, payload?: any) => GlobalState;

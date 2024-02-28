@@ -19,6 +19,7 @@ export type FormGlobalButtonsProps = {
     onDiscardForm: () => void;
     onSubmitForm: () => void;
     onDeleteForm: () => void;
+    onExportForm?: () => void;
 }
 
 export function FormGlobalButtons({
@@ -31,6 +32,7 @@ export function FormGlobalButtons({
     onDiscardForm,
     onSubmitForm,
     onDeleteForm,
+    onExportForm,
 }: FormGlobalButtonsProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
@@ -75,6 +77,7 @@ export function FormGlobalButtons({
                             actions={[
                                 { key: 'dpm_discard', label: 'Discard Changes', onPress: onDiscardForm, },
                                 { key: 'dpm_delete', label: `Delete ${isDesignMode ? 'Template' : 'Form'}`, onPress: onDeleteForm, },
+                                { key: 'dpm_export', label: 'Export', onPress: onExportForm },
                             ]}
                         />
                     </View>

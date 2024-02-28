@@ -13,22 +13,25 @@ export default function CreateTemplateScreen() {
     const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
 
     async function handleSubmit(values: FormConfig, formikHelpers: FormikHelpers<FormConfig>) {
-        await saveConfiguration(values)
-            .then((result) => {
-                if (result.insertId) {
-                    router.push(`template/${result.insertId}?saved=true`);
-                }
-                else {
-                    console.log('No insert id!');
-                    console.log(result)
-                    setSnackbarOptions({ type: 'ERROR', message: 'An error occured saving, please try again.' });
-                }
-            })
-            .catch((e) => {
-                // todo display error
-                console.error(e);
-                setSnackbarOptions({ type: 'ERROR', message: e?.message || 'An error occured saving, please try again.' });
-            });
+        console.log('Submitting form...');
+
+        try {
+            const result = await saveConfiguration(values);
+            console.log('Configuration saved.');
+                
+            if (result.insertId) {
+                router.push(`template/${result.insertId}?saved=true`);
+            }
+            else {
+                console.log('No insert id!');
+                console.log(result)
+                setSnackbarOptions({ type: 'ERROR', message: 'An error occured saving, please try again.' });
+            }
+        }
+        catch (e) {
+            console.error(e);
+            setSnackbarOptions({ type: 'ERROR', message: e?.message || 'An error occured saving, please try again.' });
+        }
     }
 
     return (

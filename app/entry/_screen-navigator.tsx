@@ -1,8 +1,7 @@
 import { StyleSheet, View } from "react-native";
-import { FormConfig, FormEntryV2 } from "../../lib/config";
+import { FormEntryV2 } from "../../lib/config";
 import { MD3Theme, Text, useTheme } from "react-native-paper";
 import { TouchableOpacity } from "react-native-gesture-handler";
-import { useState } from "react";
 
 type ScreenNavigatorProps = {
     form: FormEntryV2;

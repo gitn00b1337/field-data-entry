@@ -1,12 +1,11 @@
 import { View, StyleSheet, } from "react-native";
 import { Button, IconButton, MD3Theme, Text, useTheme, } from "react-native-paper";
-import { FormInput } from "../../components/form-input";
 import { FormConfig, FormFieldConfig, FormScreenConfig, FormTrigger, createTrigger } from "../../lib/config";
 import { FieldArray, FieldArrayRenderProps } from "formik";
 import { FormSelectField } from "../../components/form-select";
 import { FormMultiSelectField } from "../../components/form-multiselect";
-import { FormCheckBox } from "../../components/form-checkbox";
 import { useEffect, useState } from "react";
+import { DotsPopupMenu } from "../../components/dots-popup-menu";
 
 type DrawerTriggersContentProps = {
     theme: MD3Theme;
@@ -125,7 +124,8 @@ function FormTriggerConfig({
         <View 
             key={`trigger-${index}`}
             style={triggerStyles.triggerContainer}
-        >         
+        >   
+            <View style={triggerStyles.configWrap}>  
             <View>
                 <FormMultiSelectField
                     fieldName={`screens[${screenIndex}].triggers[${index}].rows`}
@@ -154,6 +154,15 @@ function FormTriggerConfig({
                     options={[{ value: 'COPY_ROWS', label: 'Copy Rows' }]}                                         
                 />
             </View>
+            </View>
+            <View style={{ justifyContent: 'flex-start', alignItems: 'center', alignContent: 'center'}}>
+                <DotsPopupMenu
+                    size={20}
+                    actions={[
+                        { key: 'delete', label: 'Delete', onPress: onDeletePress }
+                    ]}
+                />
+            </View>    
         </View>
     )
 }
@@ -165,13 +174,16 @@ const makeTriggerStyles = (theme: MD3Theme) => StyleSheet.create({
         paddingVertical: 12,
     },
     triggerContainer: {
-        flexDirection: 'column',
-        width: '100%',
+        flexDirection: 'row',
         paddingHorizontal: 12,
         borderBottomColor: theme.colors.surface,
         borderBottomWidth: 4,
         paddingBottom: 24,
         marginBottom: 24,
+    },
+    configWrap: {
+        flexDirection: 'column',
+        flexGrow: 1,
     },
 })
 

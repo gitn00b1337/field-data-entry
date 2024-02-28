@@ -19,6 +19,7 @@ export type DataCollectionFormProps<T> = {
     formRef?: React.Ref<FormikProps<T>>;
     onDiscardPress: (isDirty: boolean) => void;
     onDeleteFormPress: () => void;
+    onExportForm?: () => void;
 }
 
 export function DataCollectionForm({
@@ -36,6 +37,7 @@ export function DataCollectionForm({
     formRef,
     onDiscardPress,
     onDeleteFormPress,
+    onExportForm,
 }: DataCollectionFormProps<FormEntryV2>) {
     if (!form) {
         return null;
@@ -68,6 +70,7 @@ export function DataCollectionForm({
                     onSubmitForm={submitForm}
                     onDiscardForm={() => onDiscardPress(dirty)}
                     onDeleteForm={onDeleteFormPress}
+                    onExportForm={onExportForm}
                 />
             </>
         )}

@@ -35,20 +35,10 @@ const runTransaction: DbTransaction = (sql, params = []) => {
                     return true; // return true to rollback
                 }
 
-                function onTransactionError(error: SQLError) {
-                    const reason = error?.message || 'An error occured creating a transaction.';
-                    console.error(reason);
-                    reject(reason);
-                }
-        
-                function onTransactionSuccess() {
-                    console.log('runTransaction: Transaction success.')
-                }
-
                 try {
                     database.transaction((tx) => {
                         tx.executeSql(sql, params, onComplete, onError)
-                    }, onTransactionError, onTransactionSuccess)
+                    })
                 }
                 catch (e) {
                     console.error(e);
@@ -153,17 +143,12 @@ function createConfigTableIfNotExists() {
     return createTable('configs', query);
 }
 
-async function createDatabase() {
+function createDatabase() {
     creating = Promise.all([
         createConfigTableIfNotExists(),
         createMigrationTableIfNotExists(),
-    ]);
-
-    await creating;
-
-    await migrateDatabase();
-
-    console.log('Database created')
+    ])
+    .then(migrateDatabase);
 
     return creating;
 }
@@ -180,6 +165,7 @@ const database = openDatabase();
 
 // create the tables. queries shouldnt run until tables have been created/migrated
 createDatabase()
+    .then(() => console.log('Database created.'))
     .catch(e => {
         console.error(e);
     });
@@ -391,7 +377,7 @@ export type EntriesOverview = {
 
 export async function getConfigurations(): Promise<ConfigurationOverview[]> {
     const params = [];
-    const sql = `SELECT id, name, updatedAt FROM configs;`;
+    const sql = `SELECT id, name, updatedAt FROM configs ORDER BY createdAt DESC;`;
     
     const result = await runTransaction(sql, params);
     let mapped: ConfigurationOverview[] = [];
@@ -413,7 +399,7 @@ export async function getConfigurations(): Promise<ConfigurationOverview[]> {
 
 export async function getEntries(configId: number): Promise<EntriesOverview[]> {
     const params = [ configId ];
-    const sql = `SELECT id, name, createdAt, updatedAt FROM entries WHERE configId = ?;`;
+    const sql = `SELECT id, name, createdAt, updatedAt FROM entries WHERE configId = ? ORDER BY createdAt DESC;`;
     
     const result = await runTransaction(sql, params);
     let mapped: EntriesOverview[] = [];
@@ -434,17 +420,26 @@ export async function getEntries(configId: number): Promise<EntriesOverview[]> {
     return mapped;
 }
 
-async function createMigrationTableIfNotExists() {
+function createMigrationTableIfNotExists() {
     const sql = `CREATE TABLE IF NOT EXISTS migrations (
         id INTEGER primary key not null,
         lastRunIndex integer not null
     );`;
 
-    await createTable('migrations', sql);
-
-    runTransaction(`INSERT INTO migrations(lastRunIndex) values (0);`)
+    return createTable('migrations', sql)
+        .then(() => {
+            runTransaction(`INSERT INTO migrations(lastRunIndex) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM migrations);`)
+                .then((value: SQLite.SQLResultSet) => {
+                    console.log('Migration rows inserted:')
+                    console.log(value.rows);
+                })
+                .catch(e => {
+                    console.error('An error occured adding migration info.');
+                    console.error(e);
+                });
+        })
         .catch(e => {
-            console.error('An error occured adding migration info.');
+            console.error('An error occured creating the migrations table.');
             console.error(e);
         });
 }

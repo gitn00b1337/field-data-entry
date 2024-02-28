@@ -18,7 +18,7 @@ export type FormConfig = {
     globalFields: GlobalFieldConfig[]; 
 }
 
-export type FormEntry<T = string | number> = {
+export type FormEntry<T = string | number | boolean> = {
     value: T;
     meta: {
         [key: string]: any
@@ -323,7 +323,19 @@ export function createFormConfig(): FormConfig {
         id: undefined,
         name: '',
         description: '',
-        screens: [],
+        screens: [
+            createFormScreenConfig({ 
+                title: '',
+                position: 0,
+                rows: [
+                    createFormRow({
+                        fields: [
+                            createFieldConfig({})
+                        ]
+                    })
+                ]
+             })
+        ],
         position: 0,
         imgSrc: '',
         globalFields: [],
@@ -367,12 +379,12 @@ function createEntryGlobalFields(fields: GlobalFieldConfig[]): GlobalField[] {
     });
 }
 
-type FieldEntry = {
+export type FieldEntry = {
     value: string;
     meta: { [key: string]: any };
 }
 
-function createFieldEntry(value: string = '', meta = {}): FieldEntry {
+export function createFieldEntry(value = '', meta = {}): FormEntry {
     return {
         value,
         meta,

@@ -45,10 +45,12 @@ export default function HomeScreen() {
                 console.error(e);
                 setPageError('An error occured loading configrations.');
             });
+
+        loadEntries();
     }, [isFocused]);
 
-    useEffect(() => {
-        if (!selectedTemplate) {
+    function loadEntries() {
+        if (!selectedTemplate?.id) {
             setEntries([]);
             return;
         }
@@ -84,7 +86,10 @@ export default function HomeScreen() {
             .finally(() => {
                 setLoadingEntries(false);
             });
+    }
 
+    useEffect(() => {
+        loadEntries();
     }, [ selectedTemplate ])
 
     function handleTemplateClick(item: TemplateListItem) {
