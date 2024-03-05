@@ -1,9 +1,9 @@
 import { useGlobalSearchParams, useRouter, } from "expo-router";
 import { View } from "react-native";
-import { Text, Snackbar } from "react-native-paper";
+import { Text, } from "react-native-paper";
 import { loadConfiguration, saveConfiguration } from "../../lib/database";
 import { useEffect, useState } from "react";
-import { FormConfig, FormFieldConfig } from "../../lib/config";
+import { FormConfig, } from "../../lib/config";
 import { TemplateForm } from "./template-form";
 import { Formik, FormikHelpers } from "formik";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";

@@ -1,7 +1,6 @@
 import { useGlobalSearchParams, } from "expo-router";
 import { useEffect, useState } from "react";
-import { FieldEntry, FormEntry, FormEntryV2, FormEntryValues, TimerEntryMeta, createFieldEntry } from "../../lib/config";
-import { StyleSheet } from "react-native";
+import { FormEntryV2, FormEntryValue, FormEntryValues, TimerEntryMeta, createFieldEntry } from "../../lib/config";
 import { loadEntry, } from "../../lib/database";
 import { EntryForm, LoadingState } from "./form";
 
@@ -12,7 +11,7 @@ export type LoadedEntry = {
 }
 
 function withPausedTimers(entry: FormEntryV2): FormEntryV2 {
-    const keys = entry.globalFields?.filter(f => f.type === 'TIMER').map(f => f.entryKey);
+    const keys = entry.config?.globalFields?.filter(f => f.type === 'TIMER').map(f => f.entryKey);
 
     const newVals: FormEntryValues = keys
         .map(key => {
@@ -29,7 +28,7 @@ function withPausedTimers(entry: FormEntryV2): FormEntryV2 {
                     history: [ ...(entryVal.meta?.history || [] ) ],
                 };
 
-                const value: FormEntry = {
+                const value: FormEntryValue = {
                     ...entryVal,
                     meta
                 };
@@ -69,6 +68,10 @@ export default function UpdateEntryScreen() {
 
         loadEntry(entryId)
             .then(result => {
+                if (!result) {
+                    setLoadedEntry(undefined);
+                }
+
                 setLoadedEntry({
                     state: 'LOADED',
                     data: withPausedTimers(result),
@@ -81,7 +84,8 @@ export default function UpdateEntryScreen() {
                     state: 'ERROR',
                 });
                 console.error(`Error loading entry!`)
-                console.error(e);        
+                console.error(e); 
+                console.error(e.stack)       
             });
     }, []);
 

@@ -23,6 +23,7 @@ export default function CreateEntryScreen() {
 
         loadConfiguration(templateId)
             .then(config => {
+                console.log('Creating Form...')
                 const form = createFormV2(config);
 
                 setLoadedEntry({

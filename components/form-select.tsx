@@ -15,6 +15,7 @@ export type FormSelectProps = {
     }[];
     onFocus?: () => void;
     onChange?: (val: string) => void;
+    isDisabled?: boolean;
 }
 
 export function FormSelectField({

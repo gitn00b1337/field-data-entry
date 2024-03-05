@@ -1,22 +1,27 @@
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { FormEntryRow, FormFieldV2  } from "../lib/config"
+import { FormFieldConfig, FormRow as FormRowConfig  } from "../lib/config"
 import { MD3Theme, useTheme } from "react-native-paper";
 import { FormField } from "./form-field";
 
 export type FormRowProps = {
-    row: FormEntryRow;
+    rows: GroupedRowFields;
     isFocused: boolean;
     onPress: (index: number) => void;
     index: number;
     screenIndex: number;
     isDesignMode: boolean;
     onFieldPress?: (rowIndex: number, fieldIndex: number) => void;
-    onFieldChange?: (field: FormFieldV2, value: any) => void;
+    onFieldChange?: (config: FormFieldConfig, value: any, rowIndex: number) => void;
     loopIndex?: number;
-}
+};
 
-export function FormRow({
-    row,
+export type GroupedRowFields = {
+    key: string;
+    fields: FormFieldConfig[][];
+};
+
+export function FormRowGroup({
+    rows,
     isFocused,
     index,
     onPress,
@@ -26,7 +31,7 @@ export function FormRow({
     loopIndex = 0,
     onFieldChange,
 }: FormRowProps) {
-    if (!row) {
+    if (!rows) {
         return null;
     }
 
@@ -50,20 +55,27 @@ export function FormRow({
         onFieldPress(index, fieldIndex);
     }
 
+    const firstRow = rows[0];
+
     return (
         <TouchableOpacity onPress={handlePress} style={styles.container}>
             <View style={{ ...styles.row, ...focusedStyle,}}>
                 {
-                    row.fields.map((field, fieldIndex) => {
-                        return (
-                            <FormField
-                                config={field}
-                                key={`screen${screenIndex}-row${index}-field${fieldIndex}`}
-                                onPress={() => handleFieldPress(fieldIndex)}
-                                onChange={onFieldChange}
-                            />
-                        );
-                    })
+                    rows.fields.map((fieldGroup, fieldGroupIndex) => (
+                        <View style={[ styles.column ]} key={`field-group-${fieldGroupIndex}`}>
+                            {
+                                fieldGroup.map((field, fieldIndex) => (
+                                    <FormField
+                                        config={field}
+                                        key={`screen${screenIndex}-row${index}-grp-${fieldGroupIndex}-field${fieldIndex}`}
+                                        onPress={() => handleFieldPress(fieldGroupIndex)}
+                                        onChange={(field, value) => onFieldChange(field, value, index + fieldIndex)}
+                                        isDisabled={isDesignMode}
+                                    />
+                                ))
+                            }
+                        </View>
+                    ))
                 }
             </View>
         </TouchableOpacity>
@@ -75,7 +87,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         minWidth: 100,
         minHeight: 50,
         paddingBottom: 0,
-        paddingRight: 24,        
+        paddingRight: 24,    
     },
     border: {
         borderColor: theme.colors.secondary,
@@ -88,5 +100,9 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignContent: 'stretch',
         alignItems: 'stretch',
         position: 'relative'
+    },
+    column: {
+        flexDirection: 'column',
+        flexGrow: 1,
     }
 });

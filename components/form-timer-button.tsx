@@ -1,12 +1,13 @@
 import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { FormEntry, GlobalField, } from "../lib/config";
-import { useEffect, useRef, useState } from "react";
+import { FormEntryValue, GlobalFieldConfig, } from "../lib/config";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FieldInputProps, connect, useField, } from "formik";
 import { Icon, MD3Theme, Text, useTheme } from "react-native-paper";
 import moment from "moment";
+import { formatTotalSecondsToTimeString } from "../lib/utils";
 
 export type FormTimerButtonProps = {
-    field: GlobalField;
+    field: GlobalFieldConfig;
     isDesignMode: boolean;
 }
 
@@ -23,8 +24,8 @@ export function FormTimerButton(props: FormTimerButtonProps) {
 }
 
 type TimerButtonProps = FormTimerButtonProps & {
-    formField: FormEntry<number>;
-    setFormField: (val: FormEntry<number>) => void;
+    formField: FormEntryValue<number>;
+    setFormField: (val: FormEntryValue<number>) => void;
 }
 
 /**
@@ -41,14 +42,9 @@ export function TimerButton({
     const [isRunning, setIsRunning] = useState(formField?.meta?.state === 'RUNNING');
     const [currentTime, setCurrentTime] = useState(formField?.value || 0);
 
-    const totalSeconds = Number(formField?.value) || 0;
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds - hours*3600) / 60);
-    const seconds = Math.floor((totalSeconds - hours*3600 - minutes*60));
-
-    function formatTimePart(part: number) {
-        return part.toLocaleString('en-GB', { minimumIntegerDigits: 2, useGrouping: false });
-    }
+    const timeStr = useMemo(() => 
+        formatTotalSecondsToTimeString(formField?.value)
+    , [ formField?.value ]);
 
     const intervalRef = useRef<NodeJS.Timeout>();
 
@@ -117,7 +113,6 @@ export function TimerButton({
         setIsRunning(!isRunning);
     }
 
-    const timeStr = `${formatTimePart(hours)}:${formatTimePart(minutes)}:${formatTimePart(seconds)}`;
     const isHeaderButton = field.position === 'HEADER';
 
     return (

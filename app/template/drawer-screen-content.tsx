@@ -1,5 +1,5 @@
 import { StyleSheet, TouchableOpacity, View, } from "react-native";
-import { FormConfig, FormScreenConfig, GlobalFieldConfig, createFieldConfig, createGlobalField, } from "../../lib/config";
+import { FormConfig, GlobalFieldConfig, createGlobalField, } from "../../lib/config";
 import { Text,  MD3Theme, Button, useTheme, } from 'react-native-paper';
 import React from 'react';
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
@@ -138,7 +138,6 @@ function GlobalFieldConfigView({
                     <FormInput
                         fieldName={`${field.name}.label`}
                         label='Label'
-                        value={field.label}
                     />
                 </View>
                 <View style={styles.row}>

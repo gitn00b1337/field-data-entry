@@ -1,11 +1,15 @@
 import { TouchableOpacity, View, StyleSheet } from "react-native";
 import { Text } from "react-native-paper";
 import { ActivityIndicator, MD2Colors } from 'react-native-paper';
+import { DotsPopupMenu } from "../../components/dots-popup-menu";
+import { deleteEntry, deleteEntryById } from "../../lib/database";
+import { useState } from "react";
+import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
 
 export type EntryListItem = {
     name: string;
     url: string;
-    id: string;
+    id: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -14,13 +18,30 @@ export type EntryListProps = {
     items: EntryListItem[];
     onItemClick: (item: EntryListItem) => void;
     loading: boolean;
+    onItemDeleted: (id: number) => void;
 }
 
 export function EntryList({
     items,
     onItemClick,
     loading,
+    onItemDeleted,
 }: EntryListProps) {
+    const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
+
+    async function handleDeletePress(item: EntryListItem) {
+        try {
+            await deleteEntryById(item.id);
+            onItemDeleted(item.id);
+        }
+        catch (e) {
+            setSnackbarOptions({
+                type: 'ERROR',
+                message: 'An error occured deleting the entry. Please try again.',
+            });
+        }
+    }
+
     if (loading) {
         return (
             <View style={{ paddingTop: '10%'}}>
@@ -29,6 +50,7 @@ export function EntryList({
                     color={MD2Colors.blue800} 
                     size='large'
                 />
+                
             </View>
         )
     }
@@ -43,6 +65,16 @@ export function EntryList({
 
     return (
         <View style={styles.list}>
+            {
+                !!snackbarOptions && (
+                    <FormSnackbar
+                        visible={!!snackbarOptions}
+                        onClose={() => setSnackbarOptions(undefined)}
+                        label={snackbarOptions?.message}
+                        type={snackbarOptions?.type}
+                    />
+                )
+            }
             <View style={styles.listRow}>
                 <View style={styles.listDataCol}>
                     <Text>Entry</Text>
@@ -75,6 +107,13 @@ export function EntryList({
                             <View style={styles.listDataCol}>
                                 <Text>{ item.updatedAt }</Text>
                             </View>
+                            <View style={styles.dotsMenu}>
+                                <DotsPopupMenu                                
+                                    actions={[
+                                        { key: 'delete', label: 'Delete', onPress: () => handleDeletePress(item) }
+                                    ]}
+                                />
+                            </View>       
                         </TouchableOpacity>
                     )
                 })
@@ -84,6 +123,9 @@ export function EntryList({
 }
 
 const styles = StyleSheet.create({
+    dotsMenu: {
+        paddingRight: 6,
+    },
     tabs: {
         backgroundColor: '#fff',
         borderColor: '#fff',
@@ -114,6 +156,7 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         justifyContent: 'space-evenly',
         alignItems: 'stretch',
+        paddingVertical: 2,
     },
     listDataCol: {
         flexGrow: 1,

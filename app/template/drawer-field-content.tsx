@@ -1,7 +1,7 @@
 import { NativeSyntheticEvent, StyleSheet, TextInputChangeEventData, View, } from "react-native";
-import { FormFieldConfig, FormFieldOptionConfig, FormFieldType, createFieldOption, } from "../../lib/config";
+import { FormConfig, FormFieldConfig, FormFieldOptionConfig, FormFieldType, createFieldOption, } from "../../lib/config";
 import { Button, Text, MD3Theme, Menu,  } from 'react-native-paper';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FormSelectField } from "../../components/form-select";
 import { FormInput } from "../../components/form-input";
 import { FieldArray, FieldArrayRenderProps } from "formik";
@@ -9,10 +9,10 @@ import { DotsPopupMenu } from "../../components/dots-popup-menu";
 
 type DrawerFieldContentProps = {
     theme: MD3Theme;
-    field: FormFieldConfig;
     screenIndex: number;
     rowIndex: number;
     fieldIndex: number;
+    form: FormConfig;
     onDeletePress: (arrayHelper: FieldArrayRenderProps, index: number) => void;
 }
 
@@ -33,17 +33,17 @@ const typeOptions: DropdownOptions = [
 
 export function DrawerFieldContent({
     theme,
-    field,
     fieldIndex,
     rowIndex,
     screenIndex,
     onDeletePress,
+    form,
 }: DrawerFieldContentProps) {
     const styles = makeStyles(theme);
     const [disableAddOption, setDisableAddOption] = useState(false);
-    const [visible, setVisible] = React.useState(false);
-    const openMenu = () => setVisible(true);
-    const closeMenu = () => setVisible(false);
+    const field = useMemo(() => (
+        form.screens[screenIndex]?.rows[rowIndex]?.fields[fieldIndex]
+    ), [screenIndex, rowIndex, fieldIndex]);
 
     useEffect(() => {
         if (!field?.options) {
@@ -55,9 +55,6 @@ export function DrawerFieldContent({
     }, [ field?.options ])
 
     if (screenIndex === -1 || rowIndex === -1 || fieldIndex === -1 || !field) {
-        // console.log(`Screen ${screenIndex} row ${rowIndex} field ${fieldIndex}`)
-        // console.log(field);
-        
         return (
             <View style={styles.navContainer}>
                 <View style={styles.row}>
@@ -117,7 +114,6 @@ export function DrawerFieldContent({
                                             <FormInput
                                                 fieldName={`${name}.label`}
                                                 label={'Label'}
-                                                value={field.label}
                                             />
                                         </View>
                                         <View style={[styles.row]}>
@@ -141,13 +137,11 @@ export function DrawerFieldContent({
                                                                 <View style={styles.optionRow} key={opName}>
                                                                     <FormInput
                                                                         fieldName={`${opName}.label`}
-                                                                        value={option.label}
                                                                         label='Label'
                                                                         onChange={e => handleOptionLabelChange(e, opIndex, arrayHelper)}
                                                                     />
                                                                     <FormInput
                                                                         fieldName={`${opName}.value`}
-                                                                        value={option.value}
                                                                         label='Value'
                                                                     />
                                                                 </View>

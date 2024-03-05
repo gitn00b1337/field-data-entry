@@ -16,6 +16,7 @@ export type FormMultiSelectFieldProps = {
     hasAllOption?: boolean;
     allOptionLabel?: string;
     onChange?: (vals: string[]) => void;
+    isDisabled?: boolean;
 }
 
 export function FormMultiSelectField({
@@ -33,9 +34,6 @@ export function FormMultiSelectField({
 
     const theme = useTheme();
     const styles = makeStyles(theme);
-
-    // console.log('field value::')
-    // console.log(field.value)
 
     useEffect(() => {
         if (isFocus && onFocus) {

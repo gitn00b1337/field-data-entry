@@ -88,6 +88,12 @@ export default function HomeScreen() {
             });
     }
 
+    function handleItemDeleted(id: number) {
+        console.log('filtering')
+        const newEntries = entries.filter(e => e.id !== id);
+        setEntries(newEntries);
+    }
+
     useEffect(() => {
         loadEntries();
     }, [ selectedTemplate ])
@@ -167,6 +173,7 @@ export default function HomeScreen() {
                                         items={entries}
                                         onItemClick={entry => router.push(entry.url)}
                                         loading={loadingEntries}
+                                        onItemDeleted={handleItemDeleted}
                                     />
                                 </View>
                             </View>

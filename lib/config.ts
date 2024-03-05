@@ -5,7 +5,7 @@ export type FormActionType = 'COPY_ROWS';
 export type FormActionCondition = 'HAS_VALUE';
 export type FormFieldOnChangeAction = 'NONE' | 'CREATE_BLANK';
 
-export type FormFieldType = 'TEXT' | 'WHOLE_NUMBER' | 'SELECT' | 'MULTI_SELECT' | 'NUMERIC' | 'CHECKBOX';
+export type FormFieldType = 'TEXT' | 'WHOLE_NUMBER' | 'SELECT' | 'MULTI_SELECT' | 'NUMERIC' | 'CHECKBOX' | 'TIMER';
 export type GlobalFieldType = 'TIMER';
 
 export type FormConfig = {
@@ -18,7 +18,7 @@ export type FormConfig = {
     globalFields: GlobalFieldConfig[]; 
 }
 
-export type FormEntry<T = string | number | boolean> = {
+export type FormEntryValue<T = string | number | boolean> = {
     value: T;
     meta: {
         [key: string]: any
@@ -26,89 +26,20 @@ export type FormEntry<T = string | number | boolean> = {
 }
 
 export type FormEntryValues =  { 
-    [entryKey: string]: FormEntry
+    [entryKey: string]: FormEntryValue
 }
 
 export type FormEntryV2 = {
     id: number;
-    configId: number;
-    name: string;
-    description: string;
-    screens: FormEntryScreen[];
+    // configId: number;
+    config: FormConfig;
+    // name: string;
+    // description: string;
+    // screens: FormEntryScreen[];
     values: FormEntryValues;
     createdAt: string;
     updatedAt: string;
-    globalFields: GlobalField[];
-}
-
-export type GlobalField = {
-    entryKey: string;
-} & GlobalFieldConfig
-
-export type FormEntryScreen = {
-    key: string;
-    title: string;
-    nextBtnLabel: string;
-    position: number;
-    rows: FormEntryRow[];
-    /**
-     * Configured actions to perform based on conditions set for this screen.
-     */
-    triggers: FormTrigger[];
-}
-
-export type FormEntryRow = {
-    /**
-     * Unique (per form) key for this row.
-     */
-    key: string;
-    /**
-     * The fields for a given row.
-     */
-    fields: FormFieldV2[];
-    /**
-     * An index mapping this row to the form entry values. Original row = 0, first copy = 1, nth copy = n.
-     */
-    copyIndex: number;
-    /**
-     * Key of the trigger that created this copy
-     */
-    copyTrigger: string;
-}
-
-export type FormFieldV2 = {
-    /**
-     * Unique (per form) key for this row
-     */
-    key: string;
-    /**
-     * The label shown for this field
-     */
-    label: string;
-    /**
-     * The field (data display) type
-     */
-    type: FormFieldType;
-    /**
-     * Field specific options
-     */
-    options: FormFieldOptionConfig[];
-    /**
-     * Name of the form component for formik e.g. screens[1].rows[0].fields[2]
-     */
-    name: string;
-    /**
-     * Whether the field can have multiple selections (SELECT, TIMER)
-     */
-    multiSelect: boolean;
-    /**
-     * The key for the entered value, found in form.values[ entryKey ]
-     */
-    entryKey: string;
-    /**
-     * Default value, only used for select fields.
-     */
-    defaultValue: string;
+    // globalFields: GlobalField[];
 }
 
 export type FormGroup = {
@@ -181,6 +112,10 @@ export type FormRow = {
      * The fields for a given row.
      */
     fields: FormFieldConfig[];
+
+    copyIndex: number;
+
+    copyTrigger: string;
 }
 
 export type FormFieldConfig = {
@@ -200,6 +135,7 @@ export type FormFieldConfig = {
      */
     multiSelect: boolean;
     defaultValue: string;
+    entryKey: string;
 }
 
 export type GlobalFieldConfig = {
@@ -209,6 +145,7 @@ export type GlobalFieldConfig = {
     name: string;
     position: GlobalFieldPosition;
     startTrigger: GlobalFieldStartTrigger;
+    entryKey: string;
 }
 
 export type FormFieldOptionConfig = {
@@ -218,15 +155,20 @@ export type FormFieldOptionConfig = {
     onChangeAction: FormFieldOnChangeAction;
 }
 
-
 export function createFormRow({
     fields = [],
+    copyIndex = 0,
+    copyTrigger,
 }: {
-    fields?: FormFieldConfig[]
+    fields?: FormFieldConfig[];
+    copyIndex?: number;
+    copyTrigger?: string;
 }): FormRow {
     return {
         key: generateUUID(),
         fields,
+        copyIndex,
+        copyTrigger,
     };
 }
 
@@ -255,6 +197,7 @@ export function createFieldConfig({
         defaultValue,
         multiSelect,
         key: generateUUID(),
+        entryKey: generateUUID(),
     };
 }
 
@@ -285,6 +228,7 @@ export function createGlobalField({
         type,
         position,
         startTrigger,
+        entryKey: generateUUID(),
     };
 }
 
@@ -354,29 +298,13 @@ export function createTrigger(screen: string): FormTrigger {
 }
 
 export function createFormV2(config: FormConfig): FormEntryV2 {
-    const screens = config.screens.map(formScreenFromConfig);
-    const globalFields = createEntryGlobalFields(config.globalFields);
-
     return {
-        screens,
-        globalFields,
         id: undefined, 
-        name: config.name, 
-        description: config.description, 
-        configId: config.id,
-        values: createEntryValues(screens, globalFields),
+        config,
+        values: createEntryValues(config),
         createdAt: moment().utc().toISOString(),
         updatedAt:  moment().utc().toISOString(),
     };
-}
-
-function createEntryGlobalFields(fields: GlobalFieldConfig[]): GlobalField[] {
-    return fields.map(field => {
-        return {
-            ...field,
-            entryKey: generateUUID(),
-        }
-    });
 }
 
 export type FieldEntry = {
@@ -384,17 +312,17 @@ export type FieldEntry = {
     meta: { [key: string]: any };
 }
 
-export function createFieldEntry(value = '', meta = {}): FormEntry {
+export function createFieldEntry(value = '', meta = {}): FormEntryValue {
     return {
         value,
         meta,
     }
 }
 
-function createEntryValues(screens: FormEntryScreen[], globalFields: GlobalField[]) {
+function createEntryValues(config: FormConfig) {
     let values: FormEntryValues = {};
 
-    for (const screen of screens) {
+    for (const screen of config.screens) {
         for (const row of screen.rows) {
             for (const field of row.fields) {
                 while (values.hasOwnProperty(field.entryKey)) {
@@ -408,7 +336,7 @@ function createEntryValues(screens: FormEntryScreen[], globalFields: GlobalField
         }
     }
 
-    for (const field of globalFields) {
+    for (const field of config.globalFields) {
         while (values.hasOwnProperty(field.entryKey)) {
             // shouldnt even enter here ever
             console.log('Changing field entry key');
@@ -434,63 +362,10 @@ export type TimerEntryMeta = {
     history: { state: TimerState; timestamp: string; }[]
 }
 
-function createTimerMeta(config: GlobalField): TimerEntryMeta {
+function createTimerMeta(config: GlobalFieldConfig): TimerEntryMeta {
     return {
         state: config.startTrigger === 'MANUAL' ? 'STOPPED' : 'RUNNING',
         lastValue: 0,
         history: [],
     };
-}
-
-function getDefaultFieldValue(field: FormFieldV2) {
-    switch (field.type) {
-        case 'MULTI_SELECT':
-        case 'SELECT':
-            return field.defaultValue;
-        case 'WHOLE_NUMBER':
-        case 'NUMERIC':
-            return 0;
-
-        default: 
-            return '';
-    } 
-}
-
-function formScreenFromConfig(screen: FormScreenConfig): FormEntryScreen {
-    console.log(`formScreenFromConfig: screen ${screen.key}`)
-    console.log(screen.triggers);
-
-    const triggers = screen.triggers.filter(t => t.screen === screen.key);
-    console.log(`filtered count: ${triggers.length}`)
-
-    return {
-        key: screen.key, 
-        title: screen.title, 
-        nextBtnLabel: screen.nextBtnLabel, 
-        position: screen.position, 
-        rows: screen.rows.map(formRowFromConfig),
-        triggers,
-    }
-}
-
-function formRowFromConfig(row: FormRow): FormEntryRow {
-    return {
-        key: row.key,
-        fields: row.fields?.map(fromFormFieldConfig) || [],
-        copyIndex: 0,
-        copyTrigger: '',
-    }
-}
-
-function fromFormFieldConfig(field: FormFieldConfig): FormFieldV2 {
-    return {
-        key: field.key,
-        label: field.label,
-        type: field.type,
-        options: field.options,
-        name: field.name,
-        multiSelect: field.multiSelect,
-        entryKey: generateUUID(),
-        defaultValue: field.defaultValue,
-    }
 }

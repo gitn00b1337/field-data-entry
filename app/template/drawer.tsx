@@ -19,9 +19,7 @@ export type DrawerMenuProps = {
     screens: FormScreenConfig[];
     screenIndex: number;
     onAddScreenPress: () => void;
-    selectedRow: FormRow | undefined;
     selectedRowIndex: number;
-    selectedField: FormFieldConfig | undefined;
     selectedFieldIndex: number;
     onAddFieldPress: (arrayHelper: FieldArrayRenderProps) => void;
     onEditFieldPress: (index: number) => void;
@@ -38,12 +36,10 @@ export function DrawerMenu({
     screens,
     screenIndex,
     onAddScreenPress,
-    selectedRow,
     selectedRowIndex,
     onAddFieldPress,
     onEditFieldPress,
     onDeleteFieldPress,
-    selectedField,
     selectedFieldIndex,
     onDeleteRowPress,
     onChangeRowPress,
@@ -81,7 +77,6 @@ export function DrawerMenu({
                 state.configType === 'ROW' && (
                     <DrawerRowContent
                         theme={theme}
-                        selectedRow={selectedRow}
                         selectedRowIndex={selectedRowIndex}
                         fieldName={fieldName}
                         onAddFieldPress={onAddFieldPress}
@@ -98,11 +93,11 @@ export function DrawerMenu({
                 state.configType === 'FIELD' && (
                     <DrawerFieldContent
                         theme={theme}
-                        field={selectedField}
                         fieldIndex={selectedFieldIndex}
                         rowIndex={selectedRowIndex}
                         screenIndex={screenIndex}
                         onDeletePress={onDeleteFieldPress}
+                        form={form}
                     />
                 )
             }

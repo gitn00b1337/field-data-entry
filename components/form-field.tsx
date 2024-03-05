@@ -1,6 +1,6 @@
 import { StyleSheet, TouchableOpacity, } from "react-native";
 import { MD3Theme, useTheme } from "react-native-paper";
-import { FormFieldV2 } from "../lib/config";
+import { FormFieldConfig, } from "../lib/config";
 import { FormSelectField } from "./form-select";
 import { FormMultiSelectField } from "./form-multiselect";
 import { CheckboxField } from "./form-checkbox";
@@ -9,9 +9,10 @@ import { NumericField } from "./form-numeric-field";
 import { WholeNumberField } from "./form-wholenumber-field";
 
 export type FormFieldProps = {
-    config: FormFieldV2;
+    config: FormFieldConfig;
     onPress?: () => void;
-    onChange?: (field: FormFieldV2, value: any) => void;
+    onChange?: (field: FormFieldConfig, value: any) => void;
+    isDisabled?: boolean;
 }
 
 export type FieldComponentProps = {
@@ -58,6 +59,7 @@ function FieldComponent(props : FieldComponentProps) {
                 options={props.config.options}
                 onFocus={props.onPress}
                 onChange={props.onChange}
+                isDisabled={props.isDisabled}
             />
         );
         case 'MULTI_SELECT': return (
@@ -67,6 +69,7 @@ function FieldComponent(props : FieldComponentProps) {
                 options={props.config.options}
                 onFocus={props.onPress}
                 onChange={props.onChange}
+                isDisabled={props.isDisabled}
             />
         )
         case 'NUMERIC': return <NumericField {...props} />;

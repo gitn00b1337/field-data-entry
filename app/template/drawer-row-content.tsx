@@ -1,9 +1,9 @@
-import { StyleSheet, TouchableOpacity, View, } from "react-native";
+import { StyleSheet, View, } from "react-native";
 import { FormFieldConfig, FormRow, FormScreenConfig, } from "../../lib/config";
-import { Button, Text, MD3Theme, useTheme, List, IconButton, Divider, Icon, } from 'react-native-paper';
+import { Button, Text, MD3Theme, List, IconButton, } from 'react-native-paper';
 import React from 'react';
 import { FieldArray, FieldArrayRenderProps } from "formik";
-import { NestableDraggableFlatList, NestableScrollContainer, RenderItem, RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
+import { NestableDraggableFlatList, NestableScrollContainer, RenderItemParams, } from "react-native-draggable-flatlist";
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
 
 export type DrawerRowContentProps = {
@@ -12,7 +12,6 @@ export type DrawerRowContentProps = {
     screenIndex: number;
     selectedRowIndex: number;
     screen: FormScreenConfig;
-    selectedRow: FormRow | undefined;
     onAddFieldPress: (helper: FieldArrayRenderProps) => void;
     onEditFieldPress: (index: number) => void;
     onChangeRowPress: (index: number) => void;
@@ -22,7 +21,6 @@ export type DrawerRowContentProps = {
 
 export function DrawerRowContent({
     theme,
-    selectedRow,
     selectedRowIndex,
     fieldName,
     onAddFieldPress,
@@ -34,6 +32,7 @@ export function DrawerRowContent({
     onChangeFieldOrder,
 }: DrawerRowContentProps) {
     const styles = makeStyles(theme);
+    const selectedRow = screen.rows[selectedRowIndex];
 
     if (!selectedRow) {
         return (

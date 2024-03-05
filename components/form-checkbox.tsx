@@ -8,14 +8,13 @@ export function CheckboxField({
     config,
     onChange,
     onPress,
+    isDisabled,
     ...checkboxProps
 }: FieldComponentProps & Omit<CheckboxItemProps, "status" | "label">) {
     const theme = useTheme();
     const [field, meta, helpers] = useField(config.name);
     const styles = makeStyles(theme);
     const valueChanged = useRef(false);
-
-    console.log(field);
 
     function handlePress() {
         const val = !field.value; 
@@ -43,7 +42,8 @@ export function CheckboxField({
                 {...checkboxProps}
                 label={config.label || 'New Field'}
                 status={field.value == true ? 'checked' : 'unchecked'}
-                onPress={handlePress}            
+                onPress={handlePress}        
+                disabled={isDisabled}    
             />
        </View>
     )

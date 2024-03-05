@@ -1,17 +1,14 @@
-import { NativeSyntheticEvent, StyleSheet, TextInputChangeEventData } from "react-native";
+import { StyleSheet,} from "react-native";
 import { MD3Theme, TextInput, TextInputProps, useTheme } from "react-native-paper";
-import { useField, Form, FormikProps, Formik, FieldMetaProps, FieldHelperProps } from 'formik';
-import { useEffect } from "react";
+import { useField, } from 'formik';
 
 export type FormInputProps = {
     fieldName: string;
-    value: string;
     label: string;
 } & TextInputProps
 
 export function FormInput({
     fieldName,
-    value,
     label,
     ...textInputProps
 }: FormInputProps) {
@@ -19,11 +16,10 @@ export function FormInput({
     const [field, meta, helpers] = useField(fieldName);
     const styles = makeStyles(theme);
 
-
     return (
         <TextInput
             label={label}
-            value={value}
+            value={field.value}
             onChangeText={text => helpers.setValue(text)}
             style={styles.field}
             mode='flat'

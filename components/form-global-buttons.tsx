@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { FormEntry, FormEntryV2, FormEntryValues, GlobalField, } from "../lib/config";
+import { FormEntryV2, FormEntryValue, FormEntryValues, GlobalFieldConfig, } from "../lib/config";
 import { FAB, MD3Theme, useTheme } from "react-native-paper";
 import { Direction } from "./form-screen";
 import { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { useFormikContext } from "formik";
 import { DotsPopupMenu } from "./dots-popup-menu";
 
 export type FormGlobalButtonsProps = {
-    fields: GlobalField[];
+    fields: GlobalFieldConfig[];
     entry: FormEntryValues;
     isDesignMode?: boolean;
     setSelectedRowIndex?: (number: number) => void;
@@ -67,8 +67,11 @@ export function FormGlobalButtons({
                                     key={f.key}
                                     field={f}
                                     isDesignMode={isDesignMode}
-                                    setFormField={val => formContext.setFieldValue(`values.${f.entryKey}`, val)}
-                                    formField={formContext.values.values[f.entryKey] as FormEntry<number>}
+                                    setFormField={val => {
+                                        console.log(entry[f.entryKey])
+                                        formContext.setFieldValue(`values[${f.entryKey}]`, val);
+                                    }}
+                                    formField={formContext.values.values[f.entryKey] as FormEntryValue<number>}
                                 />
                             ))
                         }

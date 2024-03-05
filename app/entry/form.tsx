@@ -32,7 +32,6 @@ export function EntryForm({
     const router = useRouter();
     const [isExporting, setIsExporting] = useState(false);
 
-
     console.log('EntryScreen!')
 
     function handleSaveButtonPress() {
@@ -57,8 +56,6 @@ export function EntryForm({
             ...values,
             id: entry?.id || entryId,
         };
-
-        console.log(vals)
 
         try {
             const id = await saveEntry(vals);
@@ -88,10 +85,16 @@ export function EntryForm({
         }
     }
 
-    function handleExportForm() {
+    async function handleExportForm(values: FormEntryV2) {
         setIsExporting(true);
 
-        exportForm(entry);
+        try {
+            await exportForm(values);
+        }
+        catch (e) {
+            setSnackbarOptions({ type: 'ERROR', message: 'An error occured exporting, please try again.' });
+            console.error(e);
+        }
     }
 
     return (
@@ -132,7 +135,7 @@ export function EntryForm({
                             />
                         )
                     }
-                    <Text style={styles.header}>{entry?.name || 'APOPO Data Collection'}</Text>
+                    <Text style={styles.header}>{entry?.config.name || 'APOPO Data Collection'}</Text>
                     <View style={{
                         flexGrow: 1,
                     }}>
@@ -147,7 +150,7 @@ export function EntryForm({
                             )
                         }
                         {
-                            state === 'LOADED' && (
+                            entry && state === 'LOADED' && (
                                 <DataCollectionForm
                                     screenIndex={screenIndex}
                                     isDesignMode={false}
@@ -158,6 +161,7 @@ export function EntryForm({
                                     onDiscardPress={handleDiscard}
                                     onDeleteFormPress={handleDeleteFormPress}
                                     onExportForm={handleExportForm}
+                                    onChangeScreen={setScreenIndex}
                                 />
                             )
                         }

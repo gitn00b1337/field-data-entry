@@ -240,9 +240,9 @@ function updateEntry(entry: FormEntryV2): Promise<SQLite.SQLResultSet> {
     `;
 
     const params = [
-        withUpdatedTS.name,
+        withUpdatedTS.config.name,
         JSON.stringify(withUpdatedTS),
-        withUpdatedTS.configId,
+        withUpdatedTS.config.id,
         withUpdatedTS.updatedAt,
         withUpdatedTS.id,
     ];
@@ -252,9 +252,9 @@ function updateEntry(entry: FormEntryV2): Promise<SQLite.SQLResultSet> {
 
 function createEntry(entry: FormEntryV2): Promise<SQLite.SQLResultSet> {
     const params = [
-        entry.name,
+        entry.config.name,
         JSON.stringify(entry),
-        entry.configId,
+        entry.config.id,
         entry.createdAt,
         entry.updatedAt,
     ];
@@ -297,13 +297,17 @@ export function deleteEntry(entry: FormEntryV2) {
         throw new Error(`Form entry cannot be deleted. It must have an ID!`);
     }
 
+    return deleteEntryById(entry.id);
+}
+
+export function deleteEntryById(id: number) {
     const sql = `
         delete from entries
         where id = ?
     `;
 
     console.log('Deleting entry...')
-    return runTransaction(sql, [ entry.id ]);
+    return runTransaction(sql, [ id ]);
 }
 
 export async function loadConfiguration(configId: string): Promise<FormConfig | undefined> {
@@ -369,7 +373,7 @@ export type ConfigurationOverview = {
 }
 
 export type EntriesOverview = {
-    id: string;
+    id: number;
     name: string;
     createdAt: string;
     updatedAt: string;
@@ -411,7 +415,7 @@ export async function getEntries(configId: number): Promise<EntriesOverview[]> {
         }
 
         mapped.push({
-            id: item.id,
+            id: Number(item.id),
             name: item.name,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt,

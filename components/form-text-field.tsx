@@ -8,6 +8,7 @@ export function TextField({
     onPress,
     onChange,
     inputProps = {},
+    isDisabled,
 }: FieldComponentProps & { inputProps?: TextInputProps }) {
     const {
         label,
@@ -17,15 +18,23 @@ export function TextField({
     const [field, meta, helpers] = useField(name);
     const valueChanged = useRef(false);
 
+    function handleChange(val: string) {
+        helpers.setValue(val, false);
+        helpers.setTouched(true, false);
+    }
+
     useEffect(() => {
-        console.log(meta.touched)
-        if (valueChanged.current 
+        // if it's not the first render and the value has changed, then trigger
+        // cant do it on the actual event as it triggers form triggers
+        // which use the values object, which is then one change event behind
+        if (   valueChanged.current 
             && typeof onChange === 'function'
-            && meta.touched
         ) {
             onChange(field.value);
         } 
 
+        console.log('ON CHANGE')
+        // stopping first render causing an onChange trigger
         valueChanged.current = true;
     }, [ field.value ]);
 
@@ -43,10 +52,9 @@ export function TextField({
                 helpers.setTouched(true, true);
                 onPress();
             }}
-            onChangeText={v => {
-                helpers.setValue(v);
-                helpers.setTouched(true, true);
-            }}
+            onChangeText={handleChange}
+            disabled={isDisabled}
+            onBlur={() => helpers.setTouched(true, true)}
         />
     )
 }

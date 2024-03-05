@@ -26,8 +26,7 @@ export default {
         },
         package: IS_DEV ? "dev.com.appsforgood.datacollection" : "com.appsforgood.datacollection",
         permissions: [
-            "android.permission.RECORD_AUDIO",
-            "android.permission.WRITE_EXTERNAL_STORAGE",
+            "android.permission.RECORD_AUDIO"
         ]
     },
     plugins: [

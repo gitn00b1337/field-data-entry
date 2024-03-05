@@ -1,57 +1,83 @@
-import { FormEntryRow, FormEntryScreen, FormEntryV2, FormFieldType, FormFieldV2 } from "./config";
-import * as Sharing from 'expo-sharing';
+import { FormEntryV2, FormFieldType, FormRow, FormScreenConfig, GlobalFieldType, } from "./config";
 import * as FileSystem from 'expo-file-system';
 import moment from "moment";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { formatTotalSecondsToTimeString } from "./utils";
 
-export async function exportForm(entry: FormEntryV2) {
+const SAF = FileSystem.StorageAccessFramework;
+
+async function trySaveFileUsingCachedPermissions(asyncStoreKey: string, fileContents: string, fileName: string, fileMimeType: string = 'text/csv'): Promise<boolean> {
+    let directoryUri = await AsyncStorage.getItem(asyncStoreKey);
+
+    if (directoryUri) {
+        try {
+            // there's no way yet in expo to check SAF permission without requesting every time, so try using cached setting if it exists
+            const destinationUri = await SAF.createFileAsync(directoryUri, fileName, fileMimeType);
+            await SAF.writeAsStringAsync(destinationUri, fileContents, { encoding: 'utf8' });
+            return true;
+        }
+        catch {   
+        }
+    }
+
+    return false;
+}
+
+function getExportFileName(entry: FormEntryV2) {
+    const createdAt = moment.utc(entry.createdAt);
+    const createdAtStr = createdAt.format('dd-MM-yyy-HH-mm-ss');
+
+    return `${createdAtStr}.csv`;
+}
+
+function getExportColumns(entry: FormEntryV2) {
     let columns: Column[] = [];
 
-
-    for (let i = 0; i < entry.screens.length; i++) {
+    for (let i = 0; i < entry.config.screens.length; i++) {
         columns = [
             ...columns,
             ...convertScreenToSheetColumns(entry, i)
         ];
     }
 
+    return [
+        ...columns,
+        ...convertGlobalFieldsToColumns(entry, columns.length),
+    ];
+}
+
+export async function exportForm(entry: FormEntryV2) {
+    const columns = getExportColumns(entry);
     const csv = writeColumnsCSV(columns);
     console.log(csv);
 
-    const createdAt = moment.utc(entry.createdAt);
-    const createdAtStr = createdAt.format('dd-MM-yyy-HH-mm-ss');
-    const path = FileSystem.documentDirectory! + `${createdAtStr}.csv`;
+    const asyncStoreKey = "SAFStore";
+    const fileName = getExportFileName(entry);
+    const saved = await trySaveFileUsingCachedPermissions(asyncStoreKey, csv, fileName);
+    
+    if (!saved) {
+        const downloadDir = SAF.getUriForDirectoryInRoot('Documents');
+        const permission = await SAF.requestDirectoryPermissionsAsync(downloadDir);
 
-    await FileSystem.writeAsStringAsync(
-        path,
-        csv,
-        { encoding: 'utf8' }
-    );
+         if (!permission.granted) {
+            return;
+        }
 
-    return await Sharing.shareAsync(path);
-}
-
-type DataGroup = {
-    [columnName: string]: {
-        values: any[]
-    }   
+        await SAF.createFileAsync(permission.directoryUri, fileName, 'text/csv');
+        await AsyncStorage.setItem(asyncStoreKey, permission.directoryUri);
+    }
 }
 
 type ScreenRowGroup = {
     index: number;
-    rows: FormEntryRow[];
+    rows: FormRow[];
 }
 
 type GroupedScreenRows = {
     [rowKey: string]: ScreenRowGroup
 }
 
-type CellValue = {
-    value: any;
-    rowIndex: number;
-    columnIndex: number;
-}
-
-function groupScreenRowsByRowKey(screen: FormEntryScreen): GroupedScreenRows {
+function groupScreenRowsByRowKey(screen: FormScreenConfig): GroupedScreenRows {
     return screen.rows
         // group the rows by key
         .reduce((groups, row, index) => {
@@ -95,7 +121,7 @@ type Column = {
     index: number;
     rows: {
         value: string | number | boolean;
-        type: FormFieldType;
+        type: FormFieldType | FormFieldType;
     }[]
 }
 
@@ -160,9 +186,11 @@ function writeColumnsCSV(columns: Column[]) {
         }
         else {
             line = columns.map(c => {
-                const row = c.rows[rowIndex];
-                console.log(row);
+                const index = c.rows.length === 1 
+                    ? 0 
+                    : rowIndex;
 
+                const row = c.rows[index];
                 return parseValue(row?.value, row?.type);
             }).join(',');
         }
@@ -173,7 +201,7 @@ function writeColumnsCSV(columns: Column[]) {
     return csv;
 }
 
-function parseValue(val: any, type: FormFieldType) {
+function parseValue(val: any, type: FormFieldType | GlobalFieldType) {
     switch (type) {
         case 'CHECKBOX':
             return !!val;
@@ -181,16 +209,37 @@ function parseValue(val: any, type: FormFieldType) {
             return Number(val);
         case 'WHOLE_NUMBER':
             return Math.round(Number(val));
+        case 'TIMER':
+            return formatTotalSecondsToTimeString(val);
         default:
             return typeof val === 'undefined' ? '' : `${val}`;
     }
 }
 
 export function convertScreenToSheetColumns(entry: FormEntryV2, screenIndex: number) {
-    const screen = entry.screens[screenIndex];
+    const screen = entry.config.screens[screenIndex];
 
     const grouped = groupScreenRowsByRowKey(screen);
     const orderedGroups = orderGroupedRows(grouped);
     const columns = getColumns(entry, orderedGroups);
     return columns;    
+}
+
+export function convertGlobalFieldsToColumns(entry: FormEntryV2, startIndex: number) {
+    return entry.config.globalFields.map((gf, index) => {
+        const value = entry.values[gf.entryKey]?.value;
+
+        const col: Column = {
+            name: gf.name,
+            index: startIndex + index,
+            rows: [
+                {
+                    value,
+                    type: gf.type,
+                }
+            ]
+        };
+
+        return col;
+    })
 }

@@ -1,7 +1,7 @@
 import { Formik, FormikConfig, FormikProps } from "formik";
-import React from "react";
+import React, { useEffect } from "react";
 import { FormScreen, Direction } from "./form-screen";
-import { FormEntryV2, } from "../lib/config";
+import { FormConfig, FormEntryV2, } from "../lib/config";
 import { FormGlobalButtons } from "./form-global-buttons";
 
 export type DataCollectionFormProps<T> = {
@@ -19,7 +19,8 @@ export type DataCollectionFormProps<T> = {
     formRef?: React.Ref<FormikProps<T>>;
     onDiscardPress: (isDirty: boolean) => void;
     onDeleteFormPress: () => void;
-    onExportForm?: () => void;
+    onExportForm?: (values: FormEntryV2) => void;
+    onChangeScreen: (screenIndex: number) => void;
 }
 
 export function DataCollectionForm({
@@ -38,8 +39,9 @@ export function DataCollectionForm({
     onDiscardPress,
     onDeleteFormPress,
     onExportForm,
+    onChangeScreen,
 }: DataCollectionFormProps<FormEntryV2>) {
-    if (!form) {
+    if (!form?.config) {
         return null;
     }
 
@@ -53,16 +55,19 @@ export function DataCollectionForm({
         {({ values, submitForm, dirty, }) => (
             <>
                 <FormScreen
-                    form={values}
+                    form={isDesignMode ? form : values}
                     screenIndex={screenIndex}
                     isDesignMode={isDesignMode}
                     selectedRowIndex={selectedRowIndex}
                     onRowPress={onRowPress}
-                    onFieldPress={onFieldPress}                    
+                    onFieldPress={onFieldPress}    
+                    onSubmit={submitForm}     
+                    onChangeScreen={onChangeScreen}      
+                    entry={values.values}     
                 />
                 <FormGlobalButtons 
                     isDesignMode={isDesignMode}
-                    fields={values.globalFields}
+                    fields={form.config.globalFields}
                     entry={values.values}
                     setSelectedRowIndex={setSelectedRowIndex}
                     onAddRowPress={onAddRowPress}
@@ -70,7 +75,7 @@ export function DataCollectionForm({
                     onSubmitForm={submitForm}
                     onDiscardForm={() => onDiscardPress(dirty)}
                     onDeleteForm={onDeleteFormPress}
-                    onExportForm={onExportForm}
+                    onExportForm={() => onExportForm(values)}
                 />
             </>
         )}

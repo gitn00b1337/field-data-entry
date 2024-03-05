@@ -21,7 +21,7 @@ export function ScreenNavigator({
         <View style={styles.container}>
             <View style={styles.positioner}>
                 {
-                    form.screens.map((screen, index) => {
+                    form.config.screens.map((screen, index) => {
                         const isActive = index === screenIndex;
 
                         return (

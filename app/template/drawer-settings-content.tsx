@@ -23,7 +23,6 @@ export function DrawerSettingsContent({
                     <FormInput
                         fieldName='name'
                         label='Form Name'
-                        value={form.name}
                     />
                 </View>
             </View>
