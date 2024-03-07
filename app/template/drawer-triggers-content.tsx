@@ -34,7 +34,7 @@ export function DrawerTriggersContent({
 
     return (
         <FieldArray
-            name={`screens[${screenIndex}].triggers`}
+            name={`config.screens[${screenIndex}].triggers`}
             render={(arrayHelper) => (
                 <View style={styles.navContainer}>
                     <View style={styles.headerContainer}>

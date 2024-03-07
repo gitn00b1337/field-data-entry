@@ -66,7 +66,7 @@ export function DrawerRowContent({
     return (
         <View style={{ flexGrow: 1, }}>
             <FieldArray
-                name={`screens[${screenIndex}].rows`}
+                name={`config.screens[${screenIndex}].rows`}
                 render={rowArrayHelper => (
                     <>
                         {
@@ -99,7 +99,7 @@ export function DrawerRowContent({
                                                 {
                                                     index === selectedRowIndex && (
                                                         <FieldArray
-                                                            name={`screens[${screenIndex}].rows[${selectedRowIndex}].fields`}
+                                                            name={`config.screens[${screenIndex}].rows[${selectedRowIndex}].fields`}
                                                             render={arrayHelper => (
                                                                 <NestableScrollContainer contentContainerStyle={styles.navContainer}>
                                                                     <NestableDraggableFlatList

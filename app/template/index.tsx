@@ -1,4 +1,4 @@
-import { FormConfig, createFormConfig, } from "../../lib/config";
+import { FormConfig, FormEntryV2, createFormConfig, createFormV2, } from "../../lib/config";
 import { Formik, FormikHelpers } from 'formik';
 import { useRouter } from "expo-router";
 import { saveConfiguration } from "../../lib/database";
@@ -7,16 +7,17 @@ import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
 import { useState } from "react";
 
 const config = createFormConfig();
+const form = createFormV2(config);
 
 export default function CreateTemplateScreen() {
     const router = useRouter();
     const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
 
-    async function handleSubmit(values: FormConfig, formikHelpers: FormikHelpers<FormConfig>) {
+    async function handleSubmit(values: FormEntryV2, formikHelpers: FormikHelpers<FormEntryV2>) {
         console.log('Submitting form...');
 
         try {
-            const result = await saveConfiguration(values);
+            const result = await saveConfiguration(values.config);
             console.log('Configuration saved.');
                 
             if (result.insertId) {
@@ -47,7 +48,7 @@ export default function CreateTemplateScreen() {
                 )
             }
             <Formik
-                initialValues={config}
+                initialValues={form}
                 onSubmit={handleSubmit}
             >
                 {(props) => (

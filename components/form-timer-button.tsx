@@ -1,46 +1,55 @@
-import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { FormEntryValue, GlobalFieldConfig, } from "../lib/config";
+import { View, TouchableOpacity, StyleSheet, GestureResponderEvent } from "react-native";
+import { FormEntryValue, GlobalFieldConfig, GlobalFieldPosition, } from "../lib/config";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FieldInputProps, connect, useField, } from "formik";
-import { Icon, MD3Theme, Text, useTheme } from "react-native-paper";
+import { Icon, MD3Theme, Menu, Text, useTheme } from "react-native-paper";
 import moment from "moment";
 import { formatTotalSecondsToTimeString } from "../lib/utils";
 
+export type TimerPosition = GlobalFieldPosition | 'IN_FORM';
+
 export type FormTimerButtonProps = {
-    field: GlobalFieldConfig;
-    isDesignMode: boolean;
+    entryKey: string;
+    position: TimerPosition;
+    label: string;
 }
 
 export function FormTimerButton(props: FormTimerButtonProps) {
-    const [formField, timeMeta, timeHelpers] = useField(`values.${props.field.entryKey}`);
+    const [formField, timeMeta, timeHelpers] = useField(`values.${props.entryKey}`);
 
     return (
         <TimerButton
-            {...props}
+            position={props.position}
             formField={formField.value}
             setFormField={timeHelpers.setValue}
+            label={props.label}
         />
     )
 }
 
-type TimerButtonProps = FormTimerButtonProps & {
+type TimerButtonProps = {
+    position: TimerPosition,
     formField: FormEntryValue<number>;
     setFormField: (val: FormEntryValue<number>) => void;
+    label: string;
 }
 
 /**
  * Header bar lies outside formik context reach so need a separate timer button 
  */
 export function TimerButton({
-    field,
+    position,
     formField,
     setFormField,
+    label,
 }: TimerButtonProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
 
     const [isRunning, setIsRunning] = useState(formField?.meta?.state === 'RUNNING');
     const [currentTime, setCurrentTime] = useState(formField?.value || 0);
+    const [showResetMenu, setShowResetMenu] = useState(false);
+    const [menuAnchor, setMenuAnchor] = useState({ x: 0, y: 0 })
 
     const timeStr = useMemo(() => 
         formatTotalSecondsToTimeString(formField?.value)
@@ -113,26 +122,114 @@ export function TimerButton({
         setIsRunning(!isRunning);
     }
 
-    const isHeaderButton = field.position === 'HEADER';
+    function getExtraStyles() {
+        switch (position) {
+            case 'HEADER':
+                return {
+                    extraLabelStyles: styles.headerLabel,
+                    extraContainerStyles: styles.headerContainer,
+                    extraTimeStyles: styles.headerTime,
+                    iconColor: theme.colors.onSecondaryContainer,
+                };
+
+            case 'FLOATING_BUTTON_BR':
+                return {
+                    extraLabelStyles: {},
+                    extraContainerStyles: {},
+                    extraTimeStyles: {},
+                    iconColor: theme.colors.onPrimaryContainer,
+                };
+
+            case 'IN_FORM': 
+                return {
+                    extraLabelStyles: styles.formLabel,
+                    extraContainerStyles: styles.formContainer,
+                    extraTimeStyles: styles.formTime,
+                    iconColor: theme.colors.onPrimaryContainer,
+                }
+
+            default:
+                return { label: {}, container: {} };
+        }
+    }
+
+    function handleLongPress(event: GestureResponderEvent) {
+        const { nativeEvent } = event;
+        const anchor = {
+            x: nativeEvent.pageX,
+            y: nativeEvent.pageY,
+        };
+
+        setMenuAnchor(anchor);
+        setShowResetMenu(true);
+    }
+
+    function handleReset() {
+        setIsRunning(false);
+        setCurrentTime(0);
+        setShowResetMenu(false);
+    }
+
+    const { extraLabelStyles, extraContainerStyles, extraTimeStyles, iconColor } = getExtraStyles(); 
 
     return (
-        <TouchableOpacity onPress={handlePress} style={[styles.container, isHeaderButton && styles.headerContainer]}>
+        <>
+        <TouchableOpacity 
+            onPress={handlePress} 
+            onLongPress={handleLongPress}
+            style={[styles.container, extraContainerStyles ]}
+        >
             <View style={{ flexGrow: 1, }}>
-                <Text style={[styles.label, isHeaderButton && styles.headerLabel]} numberOfLines={1} ellipsizeMode='tail'>{ field.label || 'Timer' }</Text>
-                <Text style={[styles.time, isHeaderButton && styles.headerTime]} numberOfLines={1} ellipsizeMode='tail'>{timeStr}</Text>
+                <Text style={[styles.label, extraLabelStyles]} numberOfLines={1} ellipsizeMode='tail'>{ label || 'Timer' }</Text>
+                <Text style={[styles.time, extraTimeStyles]} numberOfLines={1} ellipsizeMode='tail'>{timeStr}</Text>
             </View>
             <View>
                 <Icon
                     source={isRunning ? 'pause' : 'play'}
                     size={24}
-                    color={isHeaderButton ? theme.colors.onSecondaryContainer : theme.colors.onPrimary }
+                    color={iconColor}
                 />
             </View>            
         </TouchableOpacity>
+        <Menu
+            visible={showResetMenu}
+            onDismiss={() => setShowResetMenu(false)}
+            anchor={menuAnchor}
+            contentStyle={styles.resetMenuContent}
+        >
+            <Menu.Item onPress={handleReset} title='Reset' />
+        </Menu>
+        </>
     )
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    resetMenuContent: {
+        backgroundColor: '#fff',
+    },
+    formContainer: {
+        backgroundColor: '#fff',
+        shadowColor: theme.colors.surface,
+        borderRadius: theme.roundness,
+        flexGrow: 1,
+        maxWidth: 240,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    formLabel: {
+        color: theme.colors.onPrimaryContainer,
+        fontSize: 12,
+        paddingBottom: 0,
+        lineHeight: 12,
+        paddingTop: 6,
+    },
+    formTime: {
+        color: theme.colors.onPrimaryContainer,
+        padding: 0,
+        margin: 0,
+        lineHeight: 16,
+        fontSize: 16,
+    },
     container: {
         backgroundColor: theme.colors.primary,
         shadowColor: theme.colors.surface,

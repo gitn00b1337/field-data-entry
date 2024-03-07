@@ -8,13 +8,15 @@ import {
     Title,
     Paragraph,
     Menu,
-    IconButton,    
+    IconButton,
+    Divider,    
 } from 'react-native-paper';
 
 export type DotsPopupMenuAction = {
     label: string;
     onPress: () => void;
     key: string;
+    hasDivider?: boolean;
 }
 
 export type DotsPopupMenuProps = {
@@ -58,7 +60,14 @@ export const DotsPopupMenu = ({
                 contentStyle={styles.contentStyle}
             >
                 {
-                    actions.map(({ label, onPress, key }) => <Menu.Item key={key} onPress={onPress} title={label} />)
+                    actions.map(({ label, onPress, key, hasDivider }) => 
+                        <View key={key}>
+                            <Menu.Item onPress={onPress} title={label} />
+                            {
+                                hasDivider && <Divider style={styles.divider} />
+                            }
+                        </View>
+                    )
                 }
             </Menu>
         </View>
@@ -66,6 +75,9 @@ export const DotsPopupMenu = ({
 };
 
 const styles = StyleSheet.create({
+    divider: {
+        marginVertical: 6,
+    },
     icon: {
         color: '#fff',
         // width: 45,

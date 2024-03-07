@@ -1,7 +1,7 @@
 import { Formik, FormikConfig, FormikProps } from "formik";
-import React, { useEffect } from "react";
+import React from "react";
 import { FormScreen, Direction } from "./form-screen";
-import { FormConfig, FormEntryV2, } from "../lib/config";
+import { FormEntryV2, } from "../lib/config";
 import { FormGlobalButtons } from "./form-global-buttons";
 
 export type DataCollectionFormProps<T> = {
@@ -45,6 +45,8 @@ export function DataCollectionForm({
         return null;
     }
 
+    console.log(form)
+
     return (
         <Formik
             initialValues={initialValues}
@@ -55,7 +57,7 @@ export function DataCollectionForm({
         {({ values, submitForm, dirty, }) => (
             <>
                 <FormScreen
-                    form={isDesignMode ? form : values}
+                    form={values}
                     screenIndex={screenIndex}
                     isDesignMode={isDesignMode}
                     selectedRowIndex={selectedRowIndex}
@@ -68,8 +70,6 @@ export function DataCollectionForm({
                 <FormGlobalButtons 
                     isDesignMode={isDesignMode}
                     fields={form.config.globalFields}
-                    entry={values.values}
-                    setSelectedRowIndex={setSelectedRowIndex}
                     onAddRowPress={onAddRowPress}
                     onChangeRowPress={onChangeRowPress}
                     onSubmitForm={submitForm}

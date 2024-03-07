@@ -7,6 +7,7 @@ import { CheckboxField } from "./form-checkbox";
 import { TextField } from "./form-text-field";
 import { NumericField } from "./form-numeric-field";
 import { WholeNumberField } from "./form-wholenumber-field";
+import { FormTimerButton } from "./form-timer-button";
 
 export type FormFieldProps = {
     config: FormFieldConfig;
@@ -75,6 +76,13 @@ function FieldComponent(props : FieldComponentProps) {
         case 'NUMERIC': return <NumericField {...props} />;
         case 'WHOLE_NUMBER': return <WholeNumberField {...props} />;
         case 'CHECKBOX': return <CheckboxField {...props} />; 
+        case 'TIMER': return (
+            <FormTimerButton 
+                position='IN_FORM'
+                entryKey={props.config.entryKey}
+                label={props.config.label}
+            />
+        )
         default: 
             console.error(`Field type ${props.config.type} not supported`);
             return null;

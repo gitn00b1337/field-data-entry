@@ -40,7 +40,6 @@ export function FormScreen({
     const fieldName = `config.screens[${screenIndex}]`;
     const screen = config.screens[screenIndex];
     const isLastScreen = config.screens.length === (screenIndex + 1);
-    console.log(`Screen Rows: ${form.config?.screens[1]?.rows?.length || 0}`)
 
     if (!screen) {
         return null;
@@ -53,10 +52,6 @@ export function FormScreen({
     }
 
     function handleFieldChange(field: FormFieldConfig, rowIndex: number, rowArrayHelper: FieldArrayRenderProps) {
-        console.log(`HFC: ${field.name} - ${field.entryKey}`)
-        console.log(`Row Index: ${rowIndex}`)
-        console.log(screen.rows[rowIndex])
-
         handleTriggersOnFieldChange({
             entry,
             config: form.config,
@@ -64,7 +59,7 @@ export function FormScreen({
             rowArrayHelper,
             screenIndex,
             rowIndex,
-        })
+        });
     }
 
     function handleNextPress() {

@@ -2,18 +2,16 @@ import { StyleSheet, View } from "react-native";
 import { FormEntryV2, FormEntryValue, FormEntryValues, GlobalFieldConfig, } from "../lib/config";
 import { FAB, MD3Theme, useTheme } from "react-native-paper";
 import { Direction } from "./form-screen";
-import { useEffect, useState } from "react";
-import { FormTimerButton, TimerButton } from "./form-timer-button";
+import React, { useEffect, useState } from "react";
+import { FormTimerButton, TimerButton, } from "./form-timer-button";
 import { Stack } from "expo-router";
 import { NavButton } from "./nav-button";
-import { useFormikContext } from "formik";
 import { DotsPopupMenu } from "./dots-popup-menu";
+import { useFormikContext } from "formik";
 
 export type FormGlobalButtonsProps = {
     fields: GlobalFieldConfig[];
-    entry: FormEntryValues;
     isDesignMode?: boolean;
-    setSelectedRowIndex?: (number: number) => void;
     onAddRowPress?: () => void;
     onChangeRowPress?: (direction: Direction) => void;
     onDiscardForm: () => void;
@@ -24,9 +22,7 @@ export type FormGlobalButtonsProps = {
 
 export function FormGlobalButtons({
     fields,
-    entry,
     isDesignMode,
-    setSelectedRowIndex,
     onAddRowPress,
     onChangeRowPress,
     onDiscardForm,
@@ -47,8 +43,8 @@ export function FormGlobalButtons({
         setHeaderFields(
             fields.filter(f => f.position === 'HEADER')
         )
-    }, [ fields ])
-    
+    }, [fields])
+
     function handleChangeRowPress(direction: Direction) {
         if (typeof onChangeRowPress === 'function') {
             onChangeRowPress(direction);
@@ -57,69 +53,67 @@ export function FormGlobalButtons({
 
     return (
         <View style={styles.container}>
-        <Stack.Screen
-            options={{
-                headerRight: () => (
-                    <View style={styles.headerButtonsContainer}>
-                        {
-                            headerFields.map(f => (
-                                <TimerButton 
-                                    key={f.key}
-                                    field={f}
-                                    isDesignMode={isDesignMode}
-                                    setFormField={val => {
-                                        console.log(entry[f.entryKey])
-                                        formContext.setFieldValue(`values[${f.entryKey}]`, val);
-                                    }}
-                                    formField={formContext.values.values[f.entryKey] as FormEntryValue<number>}
-                                />
-                            ))
-                        }
-                        <NavButton text='Save' onPress={onSubmitForm} />
-                        <DotsPopupMenu
-                            actions={[
-                                { key: 'dpm_discard', label: 'Discard Changes', onPress: onDiscardForm, },
-                                { key: 'dpm_delete', label: `Delete ${isDesignMode ? 'Template' : 'Form'}`, onPress: onDeleteForm, },
-                                { key: 'dpm_export', label: 'Export', onPress: onExportForm },
-                            ]}
+            <Stack.Screen
+                options={{
+                    headerRight: () => (
+                        <View style={styles.headerButtonsContainer}>
+                            {
+                                headerFields.map(f => (
+                                    <TimerButton
+                                        key={f.key}
+                                        position={f.position}
+                                        formField={formContext.values.values[f.entryKey] as FormEntryValue<number>}
+                                        label={f.label}
+                                        setFormField={val => formContext.setFieldValue(`values.${f.entryKey}`, val)}
+                                    />
+                                ))
+                            }
+                            <NavButton text='Save' onPress={onSubmitForm} />
+                            <DotsPopupMenu
+                                actions={[
+                                    { key: 'dpm_discard', label: 'Quit', onPress: onDiscardForm, },
+                                    { key: 'dpm_export', label: 'Export', onPress: onExportForm, hasDivider: true, },
+                                    { key: 'dpm_delete', label: `Delete ${isDesignMode ? 'Template' : 'Form'}`, onPress: onDeleteForm, },
+                                ]}
+                            />
+                        </View>
+                    )
+                }}
+            />
+            {
+                isDesignMode && (
+                    <>
+                        <FAB
+                            icon="plus"
+                            style={{ ...styles.fab, }}
+                            onPress={onAddRowPress}
+                            color={theme.colors.onPrimary}
                         />
-                    </View>
+                        <FAB
+                            icon="arrow-up-bold"
+                            style={{ ...styles.fab, backgroundColor: theme.colors.background, }}
+                            onPress={() => handleChangeRowPress('UP')}
+                            color={theme.colors.secondary}
+                        />
+                        <FAB
+                            icon="arrow-down-bold"
+                            style={{ ...styles.fab, backgroundColor: theme.colors.background, }}
+                            onPress={() => handleChangeRowPress('DOWN')}
+                            color={theme.colors.secondary}
+                        />
+                    </>
                 )
-            }}
-        />
-        {
-            isDesignMode && (
-                <>
-                    <FAB
-                        icon="plus"
-                        style={{ ...styles.fab, }}
-                        onPress={onAddRowPress}
-                        color={theme.colors.onPrimary}
+            }
+            {
+                buttonFields.map(f => (
+                    <FormTimerButton
+                        key={`${f.key}`}
+                        entryKey={f.entryKey}
+                        position={f.position}
+                        label={f.label}
                     />
-                    <FAB
-                        icon="arrow-up-bold"
-                        style={{ ...styles.fab, backgroundColor: theme.colors.background, }}
-                        onPress={() => handleChangeRowPress('UP')}
-                        color={theme.colors.secondary}
-                    />
-                    <FAB
-                        icon="arrow-down-bold"
-                        style={{ ...styles.fab, backgroundColor: theme.colors.background, }}
-                        onPress={() => handleChangeRowPress('DOWN')}
-                        color={theme.colors.secondary}
-                    />
-                </>
-            )
-        }   
-        {
-            buttonFields.map(f => (
-                <FormTimerButton 
-                    key={`${f.key}`} 
-                    field={f} 
-                    isDesignMode={isDesignMode}
-                />
-            ))
-        }
+                ))
+            }
         </View>
     )
 }

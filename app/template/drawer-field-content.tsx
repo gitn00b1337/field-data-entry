@@ -1,10 +1,10 @@
 import { NativeSyntheticEvent, StyleSheet, TextInputChangeEventData, View, } from "react-native";
 import { FormConfig, FormFieldConfig, FormFieldOptionConfig, FormFieldType, createFieldOption, } from "../../lib/config";
-import { Button, Text, MD3Theme, Menu,  } from 'react-native-paper';
+import { Button, Text, MD3Theme, Menu, IconButton,  } from 'react-native-paper';
 import React, { useEffect, useMemo, useState } from 'react';
 import { FormSelectField } from "../../components/form-select";
 import { FormInput } from "../../components/form-input";
-import { FieldArray, FieldArrayRenderProps } from "formik";
+import { FieldArray, FieldArrayRenderProps, useField } from "formik";
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
 
 type DrawerFieldContentProps = {
@@ -28,7 +28,7 @@ const typeOptions: DropdownOptions = [
     { label: 'Whole Number', value: 'WHOLE_NUMBER', },
     { label: 'Dropdown', value: 'SELECT', },
     { label: 'Checkbox', value: 'CHECKBOX', },
-    // { label: 'Timer', value: 'TIMER' },
+    { label: 'Timer', value: 'TIMER' },
 ];
 
 export function DrawerFieldContent({
@@ -44,6 +44,7 @@ export function DrawerFieldContent({
     const field = useMemo(() => (
         form.screens[screenIndex]?.rows[rowIndex]?.fields[fieldIndex]
     ), [screenIndex, rowIndex, fieldIndex]);
+    const [defaultField, meta, defaultHelpers] = useField(`config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}].defaultValue`);
 
     useEffect(() => {
         if (!field?.options) {
@@ -64,7 +65,7 @@ export function DrawerFieldContent({
         )
     } 
 
-    const name = `screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}]`;
+    const name = `config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}]`;
 
     function handleAddOption(arrayHelper: FieldArrayRenderProps) {
         const newOption = createFieldOption();
@@ -92,7 +93,7 @@ export function DrawerFieldContent({
 
     return (
         <FieldArray
-            name={`screens[${screenIndex}].rows[${rowIndex}].fields`}
+            name={`config.screens[${screenIndex}].rows[${rowIndex}].fields`}
             render={arrayHelper => (
                 <View style={styles.navContainer}>
                     <View style={styles.row}>
@@ -106,59 +107,70 @@ export function DrawerFieldContent({
                     {
                         field && (
                             <>
-                            <FieldArray
-                                name={`${name}.options`}
-                                render={(arrayHelper) => (
-                                    <View style={{ width: '100%' }}>
-                                        <View style={styles.row}>
-                                            <FormInput
-                                                fieldName={`${name}.label`}
-                                                label={'Label'}
-                                            />
-                                        </View>
-                                        <View style={[styles.row]}>
-                                            <FormSelectField
-                                                fieldName={`${name}.type`}
-                                                label='Field Type'
-                                                options={typeOptions}
-                                            />
-                                        </View>
-                                        {
-                                            field.type === 'SELECT' && (
-                                                <View style={styles.options}>
-                                                    <View style={styles.optionsHeader}>
-                                                        <Text style={styles.optionsHeaderText}>Dropdown Options</Text>
-                                                    </View>
-                                                    {
-                                                        field.options?.map((option, opIndex) => {
-                                                            const opName = `${name}.options[${opIndex}]`;
-
-                                                            return (
-                                                                <View style={styles.optionRow} key={opName}>
-                                                                    <FormInput
-                                                                        fieldName={`${opName}.label`}
-                                                                        label='Label'
-                                                                        onChange={e => handleOptionLabelChange(e, opIndex, arrayHelper)}
-                                                                    />
-                                                                    <FormInput
-                                                                        fieldName={`${opName}.value`}
-                                                                        label='Value'
-                                                                    />
-                                                                </View>
-                                                            )
-                                                        })
-                                                    }
-                                                    <View style={styles.addOptionContainer}>
-                                                        <Button disabled={disableAddOption} onPress={() => handleAddOption(arrayHelper)}>
-                                                            Add Option
-                                                        </Button>
-                                                    </View>
-                                                </View>
-                                            )
-                                        }
+                                <View style={{ width: '100%' }}>
+                                    <View style={styles.row}>
+                                        <FormInput
+                                            fieldName={`${name}.label`}
+                                            label={'Label'}
+                                        />
                                     </View>
-                                )}
-                            />
+                                    <View style={[styles.row]}>
+                                        <FormSelectField
+                                            fieldName={`${name}.type`}
+                                            label='Field Type'
+                                            options={typeOptions}
+                                        />
+                                    </View>
+                                    {
+                                        field.type === 'SELECT' && (
+                                            <FieldArray
+                                                name={`config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}].options`}
+                                                render={arrayHelper => (
+                                                    <View style={styles.options}>
+                                                        <View style={styles.optionsHeader}>
+                                                            <Text style={styles.optionsHeaderText}>Dropdown Options</Text>
+                                                        </View>
+                                                        {
+                                                            field.options?.map((option, opIndex) => {
+                                                                const opName = `${name}.options[${opIndex}]`;
+                                                                const isDefault = option.value === defaultField.value;
+                                                                const selectedIconStyle = isDefault && styles.activeDefaultIcon;
+
+                                                                return (
+                                                                    <View style={styles.optionRow} key={opName}>
+                                                                        <FormInput
+                                                                            fieldName={`${opName}.label`}
+                                                                            label='Label'
+                                                                            onChange={e => handleOptionLabelChange(e, opIndex, arrayHelper)}
+                                                                        />
+                                                                        <FormInput
+                                                                            fieldName={`${opName}.value`}
+                                                                            label='Value'
+                                                                        />
+                                                                        <View>
+                                                                            <IconButton
+                                                                                icon={isDefault ? 'star' : 'star-outline'}
+                                                                                onPress={() => {
+                                                                                    console.log(`${option.value} clicked`)
+                                                                                    defaultHelpers.setValue(option.value)
+                                                                                }}
+                                                                                style={[ styles.defaultIcon, selectedIconStyle ]}
+                                                                            />
+                                                                        </View>
+                                                                    </View>
+                                                                )
+                                                            })
+                                                        }
+                                                        <View style={styles.addOptionContainer}>
+                                                            <Button disabled={disableAddOption} onPress={() => handleAddOption(arrayHelper)}>
+                                                                Add Option
+                                                            </Button>
+                                                        </View>
+                                                    </View>
+                                                )} />
+                                        )
+                                    }
+                                </View>
                             </>
                         )
                     }
@@ -176,6 +188,12 @@ export function DrawerFieldContent({
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    activeDefaultIcon: {
+
+    },
+    defaultIcon: {
+
+    },
     noRowText: {
         paddingTop: 24,
     },

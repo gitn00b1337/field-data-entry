@@ -36,7 +36,7 @@ export function DrawerScreenContent({
 
     return (
         <FieldArray
-            name='globalFields'
+            name='config.globalFields'
             render={globalFieldArrayHelper => (
                 <View style={styles.navContainer}>
                     <View style={styles.screensContainer}>
@@ -85,7 +85,7 @@ export function DrawerScreenContent({
                         </View>
                         <View>
                         <FieldArray
-                            name='globalFields'
+                            name='config.globalFields'
                             render={arrayHelper => (
                                 <>
                                     {

@@ -2,7 +2,7 @@ import { TouchableOpacity, View, StyleSheet } from "react-native";
 import { Text } from "react-native-paper";
 import { ActivityIndicator, MD2Colors } from 'react-native-paper';
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
-import { deleteEntry, deleteEntryById } from "../../lib/database";
+import { deleteEntryById } from "../../lib/database";
 import { useState } from "react";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
 

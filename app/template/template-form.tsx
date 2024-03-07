@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, View, } from "react-native";
-import { FormConfig, FormFieldConfig, createFieldConfig, createFormRow, createFormScreenConfig, createFormV2 } from "../../lib/config";
+import { FormEntryV2, createFieldConfig, createFieldEntry, createFormRow, createFormScreenConfig, } from "../../lib/config";
 import { useTheme, MD3Theme, } from 'react-native-paper';
 import {  FieldArray, FieldArrayRenderProps, FormikProps, FormikHelpers } from 'formik';
 import { useEffect, useMemo, useState } from "react";
@@ -10,24 +10,27 @@ import { DataCollectionForm } from "../../components/data-collection-form";
 import { useRouter, } from "expo-router";
 import { deleteConfiguration } from "../../lib/database";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
+import { LeaveFormDialog } from "./leave-form-dialog";
+import { DeleteFormDialog } from "./delete-form.dialog";
 
 export type TemplateFormProps = {
     showDrawer: boolean;
-} & FormikProps<FormConfig>
+} & FormikProps<FormEntryV2>
 
 export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
-    const [state, dispatch] = useGlobalState();
+    const [_, dispatch] = useGlobalState();
     const router = useRouter();
+
+    const { values } = formProps; 
 
     const [screenIndex, setScreenIndex] = useState(0);
     const [rowIndex, setRowIndex] = useState(-1);
     const [fieldIndex, setFieldIndex] = useState(-1);
-
-    const { values } = formProps; 
     const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
-    const previewForm = useMemo(() => createFormV2(values), [ /* values */ ]);
+    const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     useEffect(() => {
         dispatch('SET_DRAWER_VISIBLE', true);
@@ -38,9 +41,12 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
         console.log('TEMPLATE FORM RE_RENDER');
     }, [ values ])
 
-    async function handleDeleteFormPress() {
+    async function handleDeleteForm() {
         try {
-            await deleteConfiguration(values);
+            if (values.config?.id) {
+                await deleteConfiguration(values.config);
+            }
+            
             router.replace('/');
         }
         catch (e) {
@@ -49,7 +55,24 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
         }
     }
 
+    async function handleSaveAndQuit() {
+        try {
+            await formProps.submitForm();
+            router.replace('/');
+        }
+        catch (e) {
+            console.error(e);
+            setSnackbarOptions({ type: 'ERROR', message: e?.message || 'An error occured deleting, please try again.' });
+        }
+
+    }
+
     function handleDiscard() {
+        if (formProps.dirty) {
+            setShowLeaveDialog(true);
+            return;
+        }
+
         if (router.canGoBack()) {
             router.back();
         }
@@ -59,7 +82,7 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
     }
 
     function handleAddScreenPress(arrayHelper: FieldArrayRenderProps) {
-        const position = values.screens.length;
+        const position = values.config.screens.length;
 
         const field = createFieldConfig({
             name: `screens[${position}].rows[0].fields[0]`,
@@ -85,14 +108,16 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
     }
 
     function handleAddFieldPress(arrayHelper: FieldArrayRenderProps) {
-        const selectedRow = values.screens[screenIndex]?.rows[rowIndex];
+        const selectedRow = values.config.screens[screenIndex]?.rows[rowIndex];
         const fieldIndex = selectedRow?.fields 
             ? selectedRow.fields.length 
             : -1;
 
         const name = `screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}]`;
         const newField = createFieldConfig({ name, type: 'TEXT', });
+        const entry = createFieldEntry();
 
+        formProps.setFieldValue(`values.${newField.entryKey}`, entry);
         arrayHelper.push(newField);
 
         setFieldIndex(fieldIndex);
@@ -102,18 +127,14 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
         arrayHelper.remove(fieldIndex);
     }
 
-    function handleUpdateField(values: FormFieldConfig, formikHelpers: FormikHelpers<FormFieldConfig>) {
-
-    }
-
     function handleRowPress(index: number) {
         setRowIndex(index);
         dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW');
     }
 
     function handleAddRowPress(rowArrayHelper: FieldArrayRenderProps) {
-        const screen = values.screens[screenIndex];
-        const name = `screens[${screenIndex}].rows[${screen.rows.length}].fields[0]`;
+        const screen = values.config.screens[screenIndex];
+        const name = `config.screens[${screenIndex}].rows[${screen.rows.length}].fields[0]`;
 
         const field = createFieldConfig({
             name,
@@ -122,9 +143,9 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
         });
 
         const row = createFormRow({ fields: [field] });
-        rowArrayHelper.push(row);
+        rowArrayHelper.insert(rowIndex + 1, row);
 
-        setRowIndex(screen.rows.length);
+        setRowIndex(rowIndex + 1);
         setFieldIndex(0);
 
         dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW');
@@ -141,7 +162,7 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
     }
 
     function handleMoveRow(dir: 'UP' | 'DOWN') {
-        const screen = values.screens[screenIndex];
+        const screen = values.config.screens[screenIndex];
 
         if (dir === 'UP') {
             const newRowIndex = rowIndex - 1;
@@ -171,13 +192,13 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
     }
 
     function handleDeleteScreenPress(arrayHelper: FieldArrayRenderProps) {
-        if (values.screens.length <= 1) {
+        if (values.config.screens.length <= 1) {
             return;
         }
 
         arrayHelper.remove(screenIndex);
 
-        const newScreen = values.screens[0];
+        const newScreen = values.config.screens[0];
         setScreenIndex(0);
         setRowIndex(newScreen.rows.length - 1);
         setFieldIndex(-1);
@@ -189,6 +210,16 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
 
     return (
         <GestureHandlerRootView style={{ flexGrow: 1, }}>
+            <LeaveFormDialog
+                isVisible={showLeaveDialog}
+                onHideModal={() => setShowLeaveDialog(false)}
+                onSaveAndQuit={handleSaveAndQuit}
+            />
+            <DeleteFormDialog
+                isVisible={showDeleteDialog}
+                onHideModal={() => setShowDeleteDialog(false)}
+                onDelete={handleDeleteForm}
+            />
             <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor: 'green' }}>
                 {
                     !!snackbarOptions && (
@@ -201,17 +232,17 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
                     )
                 }
                 <FieldArray
-                    name='screens'
+                    name='config.screens'
                     render={arrayHelper => (
                         <View style={styles.page}>
                             <DrawerMenu
-                                form={values}
+                                form={values.config}
                                 onScreenChange={(newScreenIndex) => {
                                     setScreenIndex(newScreenIndex);
                                     setRowIndex(0);
                                     setFieldIndex(0);
                                 }}
-                                screens={values.screens}
+                                screens={values.config.screens}
                                 screenIndex={screenIndex}
                                 onAddScreenPress={() => handleAddScreenPress(arrayHelper)}
                                 selectedRowIndex={rowIndex}
@@ -226,9 +257,9 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
                             />
                             <View style={styles.container}>
                                 {
-                                    values.screens[screenIndex] && (
+                                    values.config.screens[screenIndex] && (
                                         <FieldArray
-                                            name={`screens[${screenIndex}].rows`}
+                                            name={`config.screens[${screenIndex}].rows`}
                                             render={rowArrayHelper => (
                                                 <DataCollectionForm
                                                     key={`screen-${screenIndex}`}
@@ -239,7 +270,7 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
                                                         setFieldIndex(0);
                                                     }}
                                                     isDesignMode={true}
-                                                    initialValues={previewForm}
+                                                    initialValues={values}
                                                     onSubmit={() => formProps.submitForm()}
                                                     form={values}
                                                     onAddRowPress={() => handleAddRowPress(rowArrayHelper)}
@@ -247,7 +278,7 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
                                                     onRowPress={handleRowPress}
                                                     onFieldPress={handleFieldPress}
                                                     onDiscardPress={handleDiscard}
-                                                    onDeleteFormPress={handleDeleteFormPress}
+                                                    onDeleteFormPress={() => setShowDeleteDialog(true)}
                                                     onChangeScreen={handleChangeScreenIndex}
                                                 />
                                             )}
