@@ -1,8 +1,6 @@
 
 const IS_DEV = process.env.APP_VARIANT === 'development';
 
-// console.log(`IS_DEV: ${IS_DEV}`);
-
 export default {
     name: IS_DEV ? "Field Data Collection (Dev)" : "Field Data Collection",
     slug: "field-data-collection",

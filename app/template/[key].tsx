@@ -63,9 +63,6 @@ export default function Config() {
             </View>
         )
     }
-    if (snackbarOptions) {
-        console.log(snackbarOptions)
-    }
 
     return (
         <>

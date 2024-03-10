@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, View, } from "react-native";
-import { FormEntryV2, createFieldConfig, createFieldEntry, createFormRow, createFormScreenConfig, } from "../../lib/config";
+import { FormConfig, FormEntryV2, createFieldConfig, createFieldEntry, createFormRow, createFormScreenConfig, } from "../../lib/config";
 import { useTheme, MD3Theme, } from 'react-native-paper';
-import {  FieldArray, FieldArrayRenderProps, FormikProps, FormikHelpers } from 'formik';
+import {  FieldArray, FieldArrayRenderProps, FormikProps, FormikHelpers, useFormikContext } from 'formik';
 import { useEffect, useMemo, useState } from "react";
 import { DrawerMenu } from "./drawer";
 import { useGlobalState } from "../global-state";
@@ -15,15 +15,17 @@ import { DeleteFormDialog } from "./delete-form.dialog";
 
 export type TemplateFormProps = {
     showDrawer: boolean;
-} & FormikProps<FormEntryV2>
+    isDirty: boolean;
+    configId: number | undefined;
+    screenCount: number;
+    submitForm: () => void;
+}
 
-export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
+export function TemplateForm({ showDrawer, isDirty, configId, screenCount, submitForm }: TemplateFormProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
     const [_, dispatch] = useGlobalState();
     const router = useRouter();
-
-    const { values } = formProps; 
 
     const [screenIndex, setScreenIndex] = useState(0);
     const [rowIndex, setRowIndex] = useState(-1);
@@ -31,20 +33,20 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
     const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
     const [showLeaveDialog, setShowLeaveDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const formik = useFormikContext<FormEntryV2>();
+    const values = formik.values;
 
     useEffect(() => {
         dispatch('SET_DRAWER_VISIBLE', true);
-        dispatch('SET_DRAWER_CONFIG_TYPE', 'NAV');
+        dispatch('SET_DRAWER_CONFIG_TYPE', 'SETTINGS');
     }, []);
 
-    useMemo(() => {
-        console.log('TEMPLATE FORM RE_RENDER');
-    }, [ values ])
+    console.log('TEMPLATE FORM RE_RENDER');
 
     async function handleDeleteForm() {
         try {
-            if (values.config?.id) {
-                await deleteConfiguration(values.config);
+            if (configId) {
+                await deleteConfiguration(configId);
             }
             
             router.replace('/');
@@ -57,7 +59,7 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
 
     async function handleSaveAndQuit() {
         try {
-            await formProps.submitForm();
+            await submitForm();
             router.replace('/');
         }
         catch (e) {
@@ -68,7 +70,7 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
     }
 
     function handleDiscard() {
-        if (formProps.dirty) {
+        if (isDirty) {
             setShowLeaveDialog(true);
             return;
         }
@@ -117,7 +119,7 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
         const newField = createFieldConfig({ name, type: 'TEXT', });
         const entry = createFieldEntry();
 
-        formProps.setFieldValue(`values.${newField.entryKey}`, entry);
+         formik.setFieldValue(`values.${newField.entryKey}`, entry);
         arrayHelper.push(newField);
 
         setFieldIndex(fieldIndex);
@@ -271,7 +273,7 @@ export function TemplateForm({ showDrawer, ...formProps }: TemplateFormProps) {
                                                     }}
                                                     isDesignMode={true}
                                                     initialValues={values}
-                                                    onSubmit={() => formProps.submitForm()}
+                                                    onSubmit={submitForm}
                                                     form={values}
                                                     onAddRowPress={() => handleAddRowPress(rowArrayHelper)}
                                                     onChangeRowPress={handleMoveRow}

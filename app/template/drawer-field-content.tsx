@@ -1,4 +1,4 @@
-import { NativeSyntheticEvent, StyleSheet, TextInputChangeEventData, View, } from "react-native";
+import { NativeSyntheticEvent, StyleSheet, TextInputChangeEventData, TextInputEndEditingEventData, TextInputFocusEventData, View, } from "react-native";
 import { FormConfig, FormFieldConfig, FormFieldOptionConfig, FormFieldType, createFieldOption, } from "../../lib/config";
 import { Button, Text, MD3Theme, Menu, IconButton,  } from 'react-native-paper';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -6,6 +6,7 @@ import { FormSelectField } from "../../components/form-select";
 import { FormInput } from "../../components/form-input";
 import { FieldArray, FieldArrayRenderProps, useField } from "formik";
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
+import { useGlobalState } from "../global-state";
 
 type DrawerFieldContentProps = {
     theme: MD3Theme;
@@ -41,10 +42,12 @@ export function DrawerFieldContent({
 }: DrawerFieldContentProps) {
     const styles = makeStyles(theme);
     const [disableAddOption, setDisableAddOption] = useState(false);
-    const field = useMemo(() => (
-        form.screens[screenIndex]?.rows[rowIndex]?.fields[fieldIndex]
-    ), [screenIndex, rowIndex, fieldIndex]);
-    const [defaultField, meta, defaultHelpers] = useField(`config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}].defaultValue`);
+    const [state, dispatch] = useGlobalState();
+    // const field = form.screens[screenIndex]?.rows[rowIndex]?.fields[fieldIndex];
+    const [fieldConfig, _, fieldHelpers] = useField<FormFieldConfig>(`config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}]`);
+    const [defaultField, __, defaultHelpers] = useField(`config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}].defaultValue`);
+    const field = fieldConfig?.value;
+    const name = `config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}]`;
 
     useEffect(() => {
         if (!field?.options) {
@@ -65,17 +68,16 @@ export function DrawerFieldContent({
         )
     } 
 
-    const name = `config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}]`;
-
     function handleAddOption(arrayHelper: FieldArrayRenderProps) {
         const newOption = createFieldOption();
         arrayHelper.push(newOption);
     }
 
-    function handleOptionLabelChange(e: NativeSyntheticEvent<TextInputChangeEventData>, optionIndex: number, helper: FieldArrayRenderProps) {
-        const value = e?.nativeEvent?.text;
+    function handleFieldLabelBlur(e: NativeSyntheticEvent<TextInputEndEditingEventData>, optionIndex: number, helper: FieldArrayRenderProps) {
         const option = field.options && field.options[optionIndex];
+        const value = e.nativeEvent?.text;
         const isSelect = field.type === 'MULTI_SELECT' || field.type === 'SELECT';
+        const missingDefault = !field.options?.find(op => op.value === field.defaultValue); 
 
         // requested feature: if its a select, set the value as the label 
         // but keep it overwritable. think will need to also check if touched v2 TODO.
@@ -89,6 +91,10 @@ export function DrawerFieldContent({
         };
 
         helper.replace(optionIndex, newOp);
+
+        if (missingDefault) {
+            defaultHelpers.setValue(value);
+        }
     }
 
     return (
@@ -96,8 +102,16 @@ export function DrawerFieldContent({
             name={`config.screens[${screenIndex}].rows[${rowIndex}].fields`}
             render={arrayHelper => (
                 <View style={styles.navContainer}>
-                    <View style={styles.row}>
-                        <Text style={styles.header}>Edit Field</Text>
+                    <View style={styles.breadcrumbContainer}>
+                        <Button
+                            icon="chevron-left"
+                            onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW')}
+                        >
+                            Rows
+                        </Button>
+                    </View>
+                    <View style={styles.titleContainer}>
+                        <Text style={styles.title}>Edit Field</Text>
                         <DotsPopupMenu
                              actions={[
                                 { key: 'delete', label: 'Delete', onPress: () => onDeletePress(arrayHelper, fieldIndex) }
@@ -133,28 +147,40 @@ export function DrawerFieldContent({
                                                         {
                                                             field.options?.map((option, opIndex) => {
                                                                 const opName = `${name}.options[${opIndex}]`;
-                                                                const isDefault = option.value === defaultField.value;
+                                                                const isDefault = option.value === defaultField.value && option.value !== '';
                                                                 const selectedIconStyle = isDefault && styles.activeDefaultIcon;
 
                                                                 return (
                                                                     <View style={styles.optionRow} key={opName}>
-                                                                        <FormInput
-                                                                            fieldName={`${opName}.label`}
-                                                                            label='Label'
-                                                                            onChange={e => handleOptionLabelChange(e, opIndex, arrayHelper)}
-                                                                        />
-                                                                        <FormInput
-                                                                            fieldName={`${opName}.value`}
-                                                                            label='Value'
-                                                                        />
-                                                                        <View>
+                                                                        <View style={styles.optionEntryContainer}>
+                                                                            <FormInput
+                                                                                fieldName={`${opName}.label`}
+                                                                                label='Label'
+                                                                                onEndEditing={e => handleFieldLabelBlur(e, opIndex, arrayHelper)}
+
+                                                                            />
+                                                                        </View>
+                                                                        <View style={styles.optionEntryContainer}>
+                                                                            <FormInput
+                                                                                fieldName={`${opName}.value`}
+                                                                                label='Value'
+                                                                            />
+                                                                        </View>
+                                                                        <View style={styles.defaultIconContainer}>
                                                                             <IconButton
                                                                                 icon={isDefault ? 'star' : 'star-outline'}
                                                                                 onPress={() => {
-                                                                                    console.log(`${option.value} clicked`)
-                                                                                    defaultHelpers.setValue(option.value)
+                                                                                    console.log(`${option.value} clicked`);
+                                                                                    defaultHelpers.setValue(option.value);
                                                                                 }}
                                                                                 style={[ styles.defaultIcon, selectedIconStyle ]}
+                                                                            />
+                                                                        </View>
+                                                                        <View style={styles.dotsMenu}>
+                                                                            <DotsPopupMenu                                
+                                                                                actions={[
+                                                                                    { key: 'delete', label: 'Delete', onPress: () => arrayHelper.remove(opIndex) }
+                                                                                ]}
                                                                             />
                                                                         </View>
                                                                     </View>
@@ -188,11 +214,50 @@ export function DrawerFieldContent({
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    title:{
+        fontSize: 20,
+        fontWeight: '700',
+        marginBottom: 24,
+        flexGrow: 1,
+    },
+    titleContainer: {
+        paddingLeft: 16,
+        flexDirection: 'row',
+    },
+    sectionTitleContainer: {
+        paddingLeft: 16,
+        marginBottom: 12,
+    },
+    sectionTitle: {
+        fontWeight: '700',
+        letterSpacing: 1,
+    },
+    breadcrumbContainer: {
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+    },
+    dotsMenu: {
+        flexGrow: 0,
+        width: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    defaultIconContainer: {
+        flexGrow: 0,
+        width: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    optionEntryContainer: {
+        marginRight: 12,
+        flexGrow: 1,
+    },
     activeDefaultIcon: {
-
+        
     },
     defaultIcon: {
-
+        padding: 0,
+        margin: 0,
     },
     noRowText: {
         paddingTop: 24,
@@ -234,8 +299,6 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignContent: 'stretch',
         alignItems: 'stretch',
         flexDirection: 'row',
-        gap: 12,
-        width: '100%',
     },    
     addOptionContainer: {
         width: '100%',
@@ -245,16 +308,11 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         paddingTop: 12,
     },
     fieldRow: {
-        width: '100%',
         flexDirection: 'row',
         justifyContent: 'flex-start',
         alignItems: 'stretch',
         alignContent: 'stretch',
         paddingHorizontal: 12,
-    },
-    fieldInput: {
-        width: '100%',
-        marginBottom: 24,
     },
     navContainer: {
         flexGrow: 1,
@@ -264,12 +322,11 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         flexDirection: 'column',
     },
     row: {
-        width: '100%',
         flexDirection: 'row',
         justifyContent: 'flex-start',
         alignItems: 'stretch',
         alignContent: 'stretch',
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
         display: 'flex',
         marginBottom: 12,
     },

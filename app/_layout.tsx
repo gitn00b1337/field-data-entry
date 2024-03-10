@@ -28,9 +28,6 @@ configureGlobalState();
 
 export default function App() {
   const theme = getTheme();
-  const router = useRouter();
-
-  const [showDrawer, setShowDrawer] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     FiraSans_100Thin,

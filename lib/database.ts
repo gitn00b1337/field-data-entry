@@ -61,7 +61,7 @@ const runTransaction: DbTransaction = (sql, params = []) => {
  */
 const runTransactionDangerous: DbTransaction = (sql, params = []) => {
     return new Promise((resolve, reject) => {
-        console.log('DB created, running transaction...')
+        console.log('runTransactionDangerous: DB created, running transaction...')
         
         function onComplete(_: SQLTransaction, resultSet: SQLResultSet) {
             console.log('Transaction complete')
@@ -144,6 +144,7 @@ function createConfigTableIfNotExists() {
 }
 
 function createDatabase() {
+    console.log('createDatabase: Creating database...')
     creating = Promise.all([
         createConfigTableIfNotExists(),
         createMigrationTableIfNotExists(),

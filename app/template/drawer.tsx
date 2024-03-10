@@ -10,8 +10,9 @@ import { DrawerFieldContent } from "./drawer-field-content";
 import { IconSource } from "react-native-paper/lib/typescript/components/Icon";
 import { DrawerSettingsContent } from "./drawer-settings-content";
 import { DrawerTriggersContent } from "./drawer-triggers-content";
+import { DrawerTimersContent } from "./drawer-timers-content";
 
-export type DrawerConfigType = 'NAV' | 'ROW' | 'FIELD' | 'TRIGGER' | 'SETTINGS';
+export type DrawerConfigType = 'NAV' | 'ROW' | 'FIELD' | 'TRIGGER' | 'SETTINGS' | 'TIMERS';
 
 export type DrawerMenuProps = {
     form: FormConfig;
@@ -119,31 +120,34 @@ export function DrawerMenu({
                     />
                 )
             }
+            {
+                state.configType === 'TIMERS' && (
+                    <DrawerTimersContent
+                        theme={theme}
+                        form={form}
+                    />
+                )
+            }
             <View style={styles.actionsContainer}>
+                <ActionButton
+                    onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'SETTINGS')}
+                    icon='cog'
+                    isFocused={state.configType === 'SETTINGS'}
+                />
                 <ActionButton
                     onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'NAV')}
                     icon='monitor-small'
                     isFocused={state.configType === 'NAV'}
                 />
                 <ActionButton
-                    onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW')}
-                    icon='reorder-horizontal'
-                    isFocused={state.configType === 'ROW'}
-                />
-                <ActionButton
-                    onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'FIELD')}
-                    icon='text-box-check-outline'
-                    isFocused={state.configType === 'FIELD'}
+                    onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'TIMERS')}
+                    icon='timer'
+                    isFocused={state.configType === 'TIMERS'}
                 />
                 <ActionButton
                     onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'TRIGGER')}
                     icon='lightning-bolt'
                     isFocused={state.configType === 'TRIGGER'}
-                />
-                <ActionButton
-                    onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'SETTINGS')}
-                    icon='cog'
-                    isFocused={state.configType === 'SETTINGS'}
                 />
             </View>
         </View>

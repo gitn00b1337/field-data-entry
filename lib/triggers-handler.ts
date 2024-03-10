@@ -119,9 +119,7 @@ function runTrigger(entry: FormEntryValues, config: FormConfig, trigger: FormTri
         console.log('runTrigger: Copying row');
         const copy = copyRow(row, lastRowCopy, trigger);
         // todo add form values in for these entry keys
-        // console.log(copy);
         rowArrayHelper.push(copy);
-
     }
 }
 

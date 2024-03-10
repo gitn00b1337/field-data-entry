@@ -55,7 +55,7 @@ export const useGlobalState = (): [GlobalState, (actionIdentifier: GlobalStateAc
 export const configureGlobalState = () => {
     const initialState: GlobalState = {
         drawerVisible: false,
-        configType: 'NAV',
+        configType: 'SETTINGS',
     };
 
     globalState = { 

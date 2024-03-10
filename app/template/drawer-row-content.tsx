@@ -5,6 +5,7 @@ import React from 'react';
 import { FieldArray, FieldArrayRenderProps } from "formik";
 import { NestableDraggableFlatList, NestableScrollContainer, RenderItemParams, } from "react-native-draggable-flatlist";
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
+import { useGlobalState } from "../global-state";
 
 export type DrawerRowContentProps = {
     theme: MD3Theme;
@@ -17,6 +18,36 @@ export type DrawerRowContentProps = {
     onChangeRowPress: (index: number) => void;
     onDeleteRowPress: (arrayHelper: FieldArrayRenderProps) => void;
     onChangeFieldOrder: (from: number, to: number, arrayHelper: FieldArrayRenderProps) => void;
+}
+
+type RenderItemProps = RenderItemParams<FormFieldConfig> & { 
+    onEditFieldPress: (index: number) => void; 
+    theme: MD3Theme; 
+}
+
+function renderItem({ 
+    item, 
+    getIndex, 
+    drag, 
+    isActive, 
+    onEditFieldPress, 
+    theme, 
+}: RenderItemProps) {
+    const index = getIndex();
+    const styles = makeStyles(theme);
+
+    return (
+        <List.Item
+            title={item.label || 'New Field'}
+            onLongPress={drag}
+            disabled={isActive}
+            style={styles.listItem}
+            left={props => <List.Icon icon='drag-vertical' />}
+            titleStyle={styles.listItemTitle}
+            contentStyle={styles.listItemContent}
+            onPress={() => onEditFieldPress(index)}
+        />
+    )
 }
 
 export function DrawerRowContent({
@@ -33,6 +64,7 @@ export function DrawerRowContent({
 }: DrawerRowContentProps) {
     const styles = makeStyles(theme);
     const selectedRow = screen.rows[selectedRowIndex];
+    const [state, dispatch] = useGlobalState();
 
     if (!selectedRow) {
         return (
@@ -46,39 +78,38 @@ export function DrawerRowContent({
         )
     }
 
-    function renderItem({ item, getIndex, drag, isActive }: RenderItemParams<FormFieldConfig>) {
-        const index = getIndex();
-
-        return (
-            <List.Item
-                title={item.label || 'New Field'}
-                onLongPress={drag}
-                disabled={isActive}
-                style={styles.listItem}
-                left={props => <List.Icon icon='drag-vertical' />}
-                titleStyle={styles.listItemTitle}
-                contentStyle={styles.listItemContent}
-                onPress={() => onEditFieldPress(index)}
-            />
-        )
-    }
-
     return (
         <View style={{ flexGrow: 1, }}>
+            <View style={styles.breadcrumbContainer}>
+                <Button
+                    icon="chevron-left"
+                    onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'NAV')}
+                >
+                    Screens
+                </Button>
+            </View>
+            <View style={styles.titleContainer}>
+                <Text style={styles.title}>{`Screen ${screenIndex + 1}`}</Text>
+            </View>
             <FieldArray
                 name={`config.screens[${screenIndex}].rows`}
                 render={rowArrayHelper => (
                     <>
+                        <View style={styles.sectionTitleContainer}>
+                            <Text style={styles.sectionTitle}>
+                                Rows
+                            </Text>
+                        </View>
                         {
                             screen.rows.map((row, index) => {
                                 const isExpanded = index === selectedRowIndex;
-
                                 return (
                                     <View
                                         key={`row-${index}`}
                                         style={[
                                             styles.accordionContainer,
-                                            { flexDirection: 'row', }
+                                            { flexDirection: 'row', },
+                                            // index === 0 && styles.firstAccordionContainer
                                         ]}
                                     >
                                         <View style={{ flexGrow: 1, }}>
@@ -87,7 +118,7 @@ export function DrawerRowContent({
                                                 expanded={isExpanded}
                                                 onPress={() => onChangeRowPress(index)}
                                                 style={[styles.accordion]}
-                                                titleStyle={[styles.accordionTitle, isExpanded ? {fontWeight: '700'} : {}]}
+                                                titleStyle={[styles.accordionTitle, ]}
                                                 descriptionStyle={styles.accordionDescription}
                                                 right={props => (
                                                     <List.Icon
@@ -108,8 +139,12 @@ export function DrawerRowContent({
                                                                         containerStyle={{ flexGrow: 0, flex: undefined, width: '100%' }}
                                                                         data={selectedRow.fields}
                                                                         onDragEnd={({ from, to }) => onChangeFieldOrder(from, to, arrayHelper)}
-                                                                        keyExtractor={(field, fieldIndex) => `row${selectedRowIndex}-fieldconfig${fieldIndex}`}
-                                                                        renderItem={renderItem}
+                                                                        keyExtractor={(_, fieldIndex) => `row${selectedRowIndex}-fieldconfig${fieldIndex}`}
+                                                                        renderItem={props => renderItem({ 
+                                                                            ...props, 
+                                                                            onEditFieldPress,
+                                                                            theme,
+                                                                        })}
                                                                     />
                                                                     <View style={[styles.row, { flexDirection: 'column'}]}>
                                                                         <View style={styles.addFieldDivider} />
@@ -155,6 +190,26 @@ export function DrawerRowContent({
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    title:{
+        fontSize: 20,
+        fontWeight: '700',
+        marginBottom: 24,
+    },
+    titleContainer: {
+        paddingLeft: 16,
+    },
+    sectionTitleContainer: {
+        paddingLeft: 16,
+        marginBottom: 12,
+    },
+    sectionTitle: {
+        fontWeight: '700',
+        letterSpacing: 1,
+    },
+    breadcrumbContainer: {
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+    },
     noScreenText: {
         paddingTop: 24,
     },
@@ -273,12 +328,17 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         borderBottomWidth: 1,
         borderColor: theme.colors.outlineVariant,
         paddingVertical: 4,
-
+        paddingLeft: 12,
+    },
+    firstAccordionContainer: {
+        borderTopWidth: 1,
+        borderColor: theme.colors.outlineVariant,
     },
     accordionTitle: {
         padding: 0,
         margin: 0,
-        color: '#000'
+        color: '#000',
+        fontSize: 14,
     },
     accordionDescription: {
         padding: 0,

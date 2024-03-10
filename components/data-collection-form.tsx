@@ -45,8 +45,6 @@ export function DataCollectionForm({
         return null;
     }
 
-    console.log(form)
-
     return (
         <Formik
             initialValues={initialValues}
