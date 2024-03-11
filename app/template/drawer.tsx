@@ -1,9 +1,8 @@
 import { StyleSheet, TouchableOpacity, View, } from "react-native";
-import { FormConfig, FormFieldConfig, FormRow, FormScreenConfig,  } from "../../lib/config";
-import { Button, useTheme, MD3Theme, IconButton,  } from 'react-native-paper';
+import { FormConfig, FormEntryV2, FormScreenConfig, createFieldConfig, createFieldEntry,  } from "../../lib/config";
+import { useTheme, MD3Theme, IconButton,  } from 'react-native-paper';
 import React from 'react';
 import { useGlobalState } from "../global-state";
-import { FieldArrayRenderProps } from "formik";
 import { DrawerScreenContent } from "./drawer-screen-content";
 import { DrawerRowContent } from "./drawer-row-content";
 import { DrawerFieldContent } from "./drawer-field-content";
@@ -11,47 +10,87 @@ import { IconSource } from "react-native-paper/lib/typescript/components/Icon";
 import { DrawerSettingsContent } from "./drawer-settings-content";
 import { DrawerTriggersContent } from "./drawer-triggers-content";
 import { DrawerTimersContent } from "./drawer-timers-content";
+import { Control, FormState, UseFormRegister, UseFormSetValue, UseFormWatch, useFieldArray, useWatch } from "react-hook-form";
 
 export type DrawerConfigType = 'NAV' | 'ROW' | 'FIELD' | 'TRIGGER' | 'SETTINGS' | 'TIMERS';
 
 export type DrawerMenuProps = {
-    form: FormConfig;
     onScreenChange: (index: number) => void;
-    screens: FormScreenConfig[];
     screenIndex: number;
-    onAddScreenPress: () => void;
     selectedRowIndex: number;
     selectedFieldIndex: number;
-    onAddFieldPress: (arrayHelper: FieldArrayRenderProps) => void;
-    onEditFieldPress: (index: number) => void;
-    onDeleteFieldPress: (arrayHelper: FieldArrayRenderProps, index: number) => void;
-    onDeleteRowPress: (arrayHelper: FieldArrayRenderProps) => void;
-    onChangeRowPress: (index: number) => void;
-    onChangeFieldOrder: (from: number, to: number, arrayHelper: FieldArrayRenderProps) => void;
-    onDeleteScreenPress: () => void;
+    onFieldAdded: (fieldIndex: number) => void;
+    onEditFieldPress: (fieldIndex: number) => void;
+    onFieldDeleted: (fieldIndex: number) => void;
+    onAddScreen: () => void;
+    onDeleteScreen: (screenIndex: number) => void;
+    setValue: UseFormSetValue<FormEntryV2>;
+    control: Control<FormEntryV2, any>;
+    onAddRow: () => void;
+    onDeleteRow: (rowIndex: number) => void;
+    onRowPress: (rowIndex: number) => void;
 }
 
 export function DrawerMenu({
-    form,
     onScreenChange,
-    screens,
     screenIndex,
-    onAddScreenPress,
     selectedRowIndex,
-    onAddFieldPress,
-    onEditFieldPress,
-    onDeleteFieldPress,
     selectedFieldIndex,
-    onDeleteRowPress,
-    onChangeRowPress,
-    onChangeFieldOrder,
-    onDeleteScreenPress,
+    control,
+    setValue,
+    onAddScreen,
+    onDeleteScreen,
+    onFieldAdded,
+    onEditFieldPress,
+    onDeleteRow,
+    onFieldDeleted,
+    onRowPress,
+    onAddRow,
 }: DrawerMenuProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
     const [state, dispatch] = useGlobalState();
     const fieldName = `screens[${screenIndex}].rows[${selectedRowIndex}]`;
-    const activeScreen = screens[screenIndex];
+    const screens = useWatch({
+        name: 'config.screens',
+        control,
+    });
+
+    const {
+        append: appendField,
+        remove: removeField,
+        move: moveField,
+    } = useFieldArray({
+        control,
+        name: `config.screens.${screenIndex}.rows.${selectedRowIndex}.fields`
+    }); 
+
+    function handleDeleteField(fieldIndex: number) {
+        removeField(fieldIndex);
+        onFieldDeleted(fieldIndex);
+    }
+
+    function handleAddField() {
+        const fieldCount = screens[screenIndex]?.rows[selectedRowIndex]?.fields?.length;
+
+        if (typeof fieldCount !== 'number') {
+            return;
+        }
+
+        const name = `screens[${screenIndex}].rows[${selectedRowIndex}].fields[${fieldCount}]`;
+        const newField = createFieldConfig({ name, type: 'TEXT', });
+        const entry = createFieldEntry();
+
+        appendField(newField);
+        setValue(`values.${newField.entryKey}`, entry);
+        onFieldAdded(fieldCount);
+    }
+
+    function handleMoveField(from: number, to: number) {
+        moveField(from, to);
+    }
+
+    const activeScreen = screens && screens[screenIndex];
 
     if (!state.drawerVisible) {
         return null;
@@ -66,11 +105,11 @@ export function DrawerMenu({
                 state.configType === 'NAV' && (
                     <DrawerScreenContent
                         theme={theme}
+                        control={control}
                         onScreenChange={onScreenChange}
-                        form={form}
                         screenIndex={screenIndex}
-                        onAddScreenPress={onAddScreenPress}
-                        onDeleteScreenPress={onDeleteScreenPress}
+                        onAddScreen={onAddScreen}
+                        onDeleteScreen={onDeleteScreen}
                     />
                 )
             }
@@ -80,13 +119,16 @@ export function DrawerMenu({
                         theme={theme}
                         selectedRowIndex={selectedRowIndex}
                         fieldName={fieldName}
-                        onAddFieldPress={onAddFieldPress}
                         screenIndex={screenIndex}
-                        onEditFieldPress={onEditFieldPress}
                         screen={activeScreen}
-                        onDeleteRowPress={onDeleteRowPress}
-                        onChangeRowPress={onChangeRowPress}
-                        onChangeFieldOrder={onChangeFieldOrder}
+                        setValue={setValue}
+                        control={control}
+                        onAddField={handleAddField}
+                        onEditFieldPress={onEditFieldPress}
+                        onDeleteRow={onDeleteRow}
+                        onChangeRowPress={onRowPress}
+                        onAddRow={onAddRow}
+                        onMoveField={handleMoveField}
                     />
                 )
             }
@@ -97,16 +139,16 @@ export function DrawerMenu({
                         fieldIndex={selectedFieldIndex}
                         rowIndex={selectedRowIndex}
                         screenIndex={screenIndex}
-                        onDeletePress={onDeleteFieldPress}
-                        form={form}
+                        onDeleteField={handleDeleteField}
+                        control={control}
+                        setValue={setValue}
                     />
                 )
             }
             {
                 state.configType === 'SETTINGS' && (
                     <DrawerSettingsContent
-                        theme={theme}
-                        form={form}
+                        control={control}
                     />
                 )
             }
@@ -114,17 +156,17 @@ export function DrawerMenu({
                 state.configType === 'TRIGGER' && (
                     <DrawerTriggersContent
                         theme={theme}
-                        form={form}
                         screen={screens[screenIndex]}
                         screenIndex={screenIndex}
+                        control={control}
                     />
                 )
             }
             {
                 state.configType === 'TIMERS' && (
                     <DrawerTimersContent
+                        control={control}
                         theme={theme}
-                        form={form}
                     />
                 )
             }
@@ -144,11 +186,11 @@ export function DrawerMenu({
                     icon='timer'
                     isFocused={state.configType === 'TIMERS'}
                 />
-                <ActionButton
+                {/* <ActionButton
                     onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'TRIGGER')}
                     icon='lightning-bolt'
                     isFocused={state.configType === 'TRIGGER'}
-                />
+                /> */}
             </View>
         </View>
     )

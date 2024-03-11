@@ -1,20 +1,22 @@
-import { NativeSyntheticEvent, StyleSheet, TextInputChangeEventData, TextInputEndEditingEventData, TextInputFocusEventData, View, } from "react-native";
-import { FormConfig, FormFieldConfig, FormFieldOptionConfig, FormFieldType, createFieldOption, } from "../../lib/config";
-import { Button, Text, MD3Theme, Menu, IconButton,  } from 'react-native-paper';
-import React, { useEffect, useMemo, useState } from 'react';
+import { NativeSyntheticEvent, StyleSheet, TextInputEndEditingEventData, View, } from "react-native";
+import { FormEntryV2, FormFieldOptionConfig, FormFieldType, createFieldOption, } from "../../lib/config";
+import { Button, Text, MD3Theme, IconButton,  } from 'react-native-paper';
+import React, { useEffect, useState } from 'react';
 import { FormSelectField } from "../../components/form-select";
 import { FormInput } from "../../components/form-input";
-import { FieldArray, FieldArrayRenderProps, useField } from "formik";
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
 import { useGlobalState } from "../global-state";
+import { Control, UseFormSetValue, useFieldArray, useWatch } from "react-hook-form";
+import { CheckboxField } from "../../components/form-checkbox";
 
 type DrawerFieldContentProps = {
     theme: MD3Theme;
     screenIndex: number;
     rowIndex: number;
     fieldIndex: number;
-    form: FormConfig;
-    onDeletePress: (arrayHelper: FieldArrayRenderProps, index: number) => void;
+    onDeleteField: (fieldIndex: number) => void;
+    control: Control<FormEntryV2, any>;
+    setValue: UseFormSetValue<FormEntryV2>;
 }
 
 type DropdownOption = {
@@ -37,28 +39,49 @@ export function DrawerFieldContent({
     fieldIndex,
     rowIndex,
     screenIndex,
-    onDeletePress,
-    form,
+    onDeleteField,
+    control,
+    setValue,
 }: DrawerFieldContentProps) {
     const styles = makeStyles(theme);
     const [disableAddOption, setDisableAddOption] = useState(false);
     const [state, dispatch] = useGlobalState();
-    // const field = form.screens[screenIndex]?.rows[rowIndex]?.fields[fieldIndex];
-    const [fieldConfig, _, fieldHelpers] = useField<FormFieldConfig>(`config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}]`);
-    const [defaultField, __, defaultHelpers] = useField(`config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}].defaultValue`);
-    const field = fieldConfig?.value;
-    const name = `config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}]`;
+    const name = `config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}`;
+    const fieldConfig = useWatch({
+        control,
+        name: `config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}`,
+    });
+    const defaultField = useWatch({
+        control,
+        name: `config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}.defaultValue`
+    });    
+    const {
+        fields: options,
+        remove: removeOption,
+        append: appendOption,
+        update: updateOption,
+    } = useFieldArray({
+        control,
+        name: `config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}.options`
+    }); 
+
+    const optionsArr = useWatch({
+        control,
+        name: `config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}.options`
+    })
+
+    console.log(optionsArr)
 
     useEffect(() => {
-        if (!field?.options) {
+        if (!fieldConfig?.options) {
             return;
         }
 
-        const hasEmptyValue = field.options.findIndex(o => !o.value) > -1;
+        const hasEmptyValue = fieldConfig.options.findIndex(o => !o.value) > -1;
         setDisableAddOption(hasEmptyValue);        
-    }, [ field?.options ])
+    }, [ fieldConfig?.options ])
 
-    if (screenIndex === -1 || rowIndex === -1 || fieldIndex === -1 || !field) {
+    if (screenIndex === -1 || rowIndex === -1 || fieldIndex === -1 || !fieldConfig) {
         return (
             <View style={styles.navContainer}>
                 <View style={styles.row}>
@@ -68,16 +91,20 @@ export function DrawerFieldContent({
         )
     } 
 
-    function handleAddOption(arrayHelper: FieldArrayRenderProps) {
+    function handleAddOption() {
         const newOption = createFieldOption();
-        arrayHelper.push(newOption);
+        appendOption(newOption);
     }
 
-    function handleFieldLabelBlur(e: NativeSyntheticEvent<TextInputEndEditingEventData>, optionIndex: number, helper: FieldArrayRenderProps) {
-        const option = field.options && field.options[optionIndex];
+    function setDefaultValue(value: string) {
+        setValue(`config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}.defaultValue`, value);
+    }
+
+    function handleFieldLabelBlur(e: NativeSyntheticEvent<TextInputEndEditingEventData>, optionIndex: number) {
+        const option = fieldConfig.options && fieldConfig.options[optionIndex];
         const value = e.nativeEvent?.text;
-        const isSelect = field.type === 'MULTI_SELECT' || field.type === 'SELECT';
-        const missingDefault = !field.options?.find(op => op.value === field.defaultValue); 
+        const isSelect = fieldConfig.type === 'SELECT';
+        const missingDefault = !fieldConfig.options?.find(op => op.value === fieldConfig.defaultValue); 
 
         // requested feature: if its a select, set the value as the label 
         // but keep it overwritable. think will need to also check if touched v2 TODO.
@@ -90,130 +117,139 @@ export function DrawerFieldContent({
             value,
         };
 
-        helper.replace(optionIndex, newOp);
+        updateOption(optionIndex, newOp);
 
         if (missingDefault) {
-            defaultHelpers.setValue(value);
+            setDefaultValue(value);
         }
     }
 
     return (
-        <FieldArray
-            name={`config.screens[${screenIndex}].rows[${rowIndex}].fields`}
-            render={arrayHelper => (
-                <View style={styles.navContainer}>
-                    <View style={styles.breadcrumbContainer}>
-                        <Button
-                            icon="chevron-left"
-                            onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW')}
-                        >
-                            Rows
-                        </Button>
-                    </View>
-                    <View style={styles.titleContainer}>
-                        <Text style={styles.title}>Edit Field</Text>
-                        <DotsPopupMenu
-                             actions={[
-                                { key: 'delete', label: 'Delete', onPress: () => onDeletePress(arrayHelper, fieldIndex) }
-                             ]}
-                        />
-                    </View>
-                    {
-                        field && (
-                            <>
-                                <View style={{ width: '100%' }}>
-                                    <View style={styles.row}>
-                                        <FormInput
-                                            fieldName={`${name}.label`}
-                                            label={'Label'}
-                                        />
-                                    </View>
-                                    <View style={[styles.row]}>
-                                        <FormSelectField
-                                            fieldName={`${name}.type`}
-                                            label='Field Type'
-                                            options={typeOptions}
-                                        />
-                                    </View>
-                                    {
-                                        field.type === 'SELECT' && (
-                                            <FieldArray
-                                                name={`config.screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}].options`}
-                                                render={arrayHelper => (
-                                                    <View style={styles.options}>
-                                                        <View style={styles.optionsHeader}>
-                                                            <Text style={styles.optionsHeaderText}>Dropdown Options</Text>
+        <View style={styles.navContainer}>
+            <View style={styles.breadcrumbContainer}>
+                <Button
+                    icon="chevron-left"
+                    onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW')}
+                >
+                    Rows
+                </Button>
+            </View>
+            <View style={styles.titleContainer}>
+                <Text style={styles.title}>Edit Field</Text>
+                <DotsPopupMenu
+                        actions={[
+                        { key: 'delete', label: 'Delete', onPress: () => onDeleteField(fieldIndex) }
+                        ]}
+                />
+            </View>
+            {
+                fieldConfig && (
+                    <>
+                        <View style={{ width: '100%' }}>
+                            <View style={styles.row}>
+                                <FormInput
+                                    fieldName={`${name}.label`}
+                                    label={'Label'}
+                                    control={control}
+                                />
+                            </View>
+                            <View style={[styles.row]}>
+                                <FormSelectField
+                                    fieldName={`${name}.type`}
+                                    label='Field Type'
+                                    options={typeOptions}
+                                    control={control}
+                                />
+                            </View>
+                            {
+                                fieldConfig.type === 'SELECT' && (
+                                    <CheckboxField
+                                        control={control}
+                                        name={`${name}.multiSelect`}
+                                        isDisabled={false}
+                                        label="Multiple Choices"
+                                        labelStyle={styles.isMultiSelectLabel}
+                                        containerStyle={{ borderBottomWidth: 0, }}
+                                    />
+                                )
+                            }
+                            {
+                                fieldConfig.type === 'SELECT' && (
+                                    <View style={styles.options}>
+                                        <View style={styles.optionsHeader}>
+                                            <Text style={styles.optionsHeaderText}>Dropdown Options</Text>
+                                        </View>
+                                        {
+                                            options?.map((option, opIndex) => {
+                                                const opName = `${name}.options[${opIndex}]`;
+                                                const isDefault = option.value === defaultField && option.value !== '';
+                                                const selectedIconStyle = isDefault && styles.activeDefaultIcon;
+
+                                                return (
+                                                    <View style={styles.optionRow} key={option.id}>
+                                                        <View style={styles.optionEntryContainer}>
+                                                            <FormInput
+                                                                fieldName={`${opName}.label`}
+                                                                label='Label'
+                                                                onEndEditing={e => handleFieldLabelBlur(e, opIndex)}
+                                                                control={control}
+                                                            />
                                                         </View>
-                                                        {
-                                                            field.options?.map((option, opIndex) => {
-                                                                const opName = `${name}.options[${opIndex}]`;
-                                                                const isDefault = option.value === defaultField.value && option.value !== '';
-                                                                const selectedIconStyle = isDefault && styles.activeDefaultIcon;
-
-                                                                return (
-                                                                    <View style={styles.optionRow} key={opName}>
-                                                                        <View style={styles.optionEntryContainer}>
-                                                                            <FormInput
-                                                                                fieldName={`${opName}.label`}
-                                                                                label='Label'
-                                                                                onEndEditing={e => handleFieldLabelBlur(e, opIndex, arrayHelper)}
-
-                                                                            />
-                                                                        </View>
-                                                                        <View style={styles.optionEntryContainer}>
-                                                                            <FormInput
-                                                                                fieldName={`${opName}.value`}
-                                                                                label='Value'
-                                                                            />
-                                                                        </View>
-                                                                        <View style={styles.defaultIconContainer}>
-                                                                            <IconButton
-                                                                                icon={isDefault ? 'star' : 'star-outline'}
-                                                                                onPress={() => {
-                                                                                    console.log(`${option.value} clicked`);
-                                                                                    defaultHelpers.setValue(option.value);
-                                                                                }}
-                                                                                style={[ styles.defaultIcon, selectedIconStyle ]}
-                                                                            />
-                                                                        </View>
-                                                                        <View style={styles.dotsMenu}>
-                                                                            <DotsPopupMenu                                
-                                                                                actions={[
-                                                                                    { key: 'delete', label: 'Delete', onPress: () => arrayHelper.remove(opIndex) }
-                                                                                ]}
-                                                                            />
-                                                                        </View>
-                                                                    </View>
-                                                                )
-                                                            })
-                                                        }
-                                                        <View style={styles.addOptionContainer}>
-                                                            <Button disabled={disableAddOption} onPress={() => handleAddOption(arrayHelper)}>
-                                                                Add Option
-                                                            </Button>
+                                                        <View style={styles.optionEntryContainer}>
+                                                            <FormInput
+                                                                fieldName={`${opName}.value`}
+                                                                label='Value'
+                                                                control={control}
+                                                            />
+                                                        </View>
+                                                        <View style={styles.defaultIconContainer}>
+                                                            <IconButton
+                                                                icon={isDefault ? 'star' : 'star-outline'}
+                                                                onPress={() => setDefaultValue(option.value)}
+                                                                style={[ styles.defaultIcon, selectedIconStyle ]}
+                                                            />
+                                                        </View>
+                                                        <View style={styles.dotsMenu}>
+                                                            <DotsPopupMenu                                
+                                                                actions={[
+                                                                    { key: 'delete', label: 'Delete', onPress: () => removeOption(opIndex) }
+                                                                ]}
+                                                            />
                                                         </View>
                                                     </View>
-                                                )} />
-                                        )
-                                    }
-                                </View>
-                            </>
-                        )
-                    }
-                    {
-                        !field && (
-                            <View style={styles.row}>
-                                <Text style={styles.noSelectionText}>No field selected.</Text>
-                            </View>
-                        )
-                    }
-                </View>
-            )}
-        />
+                                                )
+                                            })
+                                        }
+                                        <View style={styles.addOptionContainer}>
+                                            <Button disabled={disableAddOption} onPress={handleAddOption}>
+                                                Add Option
+                                            </Button>
+                                        </View>
+                                    </View>
+                                )
+                            }
+                        </View>
+                    </>
+                )
+            }
+            {
+                !fieldConfig && (
+                    <View style={styles.row}>
+                        <Text style={styles.noSelectionText}>No field selected.</Text>
+                    </View>
+                )
+            }
+        </View>
     )
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    isMultiSelectLabel: {
+        color: '#000',
+        fontWeight: 'normal',
+        fontFamily: theme.fonts.default.fontFamily,
+        fontSize: 14,
+    },
     title:{
         fontSize: 20,
         fontWeight: '700',

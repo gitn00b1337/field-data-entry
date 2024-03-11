@@ -5,7 +5,6 @@ import { loadConfiguration, saveConfiguration } from "../../lib/database";
 import { useEffect, useState } from "react";
 import { FormEntryV2, createFormV2, } from "../../lib/config";
 import { TemplateForm } from "./template-form";
-import { Formik, FormikHelpers } from "formik";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
 
 export default function Config() {
@@ -34,7 +33,7 @@ export default function Config() {
         return null;
     }
 
-    async function handleSubmit(values: FormEntryV2, formikHelpers: FormikHelpers<FormEntryV2>) {
+    async function handleSubmit(values: FormEntryV2) {
         console.log(`Submitting form...`);
 
         await saveConfiguration(values.config)
@@ -76,17 +75,10 @@ export default function Config() {
                     />
                 )
             }
-            <Formik
+            <TemplateForm          
                 initialValues={config}
                 onSubmit={handleSubmit}
-            >                
-                {(props) => (
-                    <TemplateForm
-                        {...props}
-                        showDrawer={true}
-                    />
-                )}
-            </Formik>
+            />
         </>
     )
 }

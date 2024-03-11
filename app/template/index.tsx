@@ -1,10 +1,9 @@
-import { FormConfig, FormEntryV2, createFormConfig, createFormV2, } from "../../lib/config";
-import { Formik, FormikHelpers } from 'formik';
+import { FormEntryV2, createFormConfig, createFormV2, } from "../../lib/config";
 import { useRouter } from "expo-router";
-import { saveConfiguration } from "../../lib/database";
 import { TemplateForm } from "./template-form";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
 import { useState } from "react";
+import { saveConfiguration } from "../../lib/database";
 
 const config = createFormConfig();
 const form = createFormV2(config);
@@ -13,7 +12,7 @@ export default function CreateTemplateScreen() {
     const router = useRouter();
     const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
 
-    async function handleSubmit(values: FormEntryV2, formikHelpers: FormikHelpers<FormEntryV2>) {
+    async function handleSubmit(values: FormEntryV2) {
         console.log('Submitting form...');
 
         try {
@@ -47,17 +46,10 @@ export default function CreateTemplateScreen() {
                     />
                 )
             }
-            <Formik
+            <TemplateForm
                 initialValues={form}
                 onSubmit={handleSubmit}
-            >
-                {(props) => (
-                    <TemplateForm
-                        {...props}
-                        showDrawer={true}
-                    />
-                )}
-            </Formik>
+            />
         </>
     )
 }

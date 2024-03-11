@@ -1,40 +1,72 @@
 import { ScrollView, StyleSheet, View, } from "react-native";
-import { FormConfig, FormEntryV2, createFieldConfig, createFieldEntry, createFormRow, createFormScreenConfig, } from "../../lib/config";
+import {  FormEntryV2, FormRow, createFieldConfig, createFormRow, createFormScreenConfig, } from "../../lib/config";
 import { useTheme, MD3Theme, } from 'react-native-paper';
-import {  FieldArray, FieldArrayRenderProps, FormikProps, FormikHelpers, useFormikContext } from 'formik';
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { DrawerMenu } from "./drawer";
 import { useGlobalState } from "../global-state";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { DataCollectionForm } from "../../components/data-collection-form";
 import { useRouter, } from "expo-router";
 import { deleteConfiguration } from "../../lib/database";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
 import { LeaveFormDialog } from "./leave-form-dialog";
 import { DeleteFormDialog } from "./delete-form.dialog";
+import { useForm, SubmitHandler, useFieldArray } from "react-hook-form";
+import { DataCollectionFormContent } from "../../components/data-collection-form";
 
 export type TemplateFormProps = {
-    showDrawer: boolean;
-    isDirty: boolean;
-    configId: number | undefined;
-    screenCount: number;
-    submitForm: () => void;
+    initialValues?: FormEntryV2;
+    onSubmit: (entry: FormEntryV2) => Promise<void>;
 }
 
-export function TemplateForm({ showDrawer, isDirty, configId, screenCount, submitForm }: TemplateFormProps) {
+export function TemplateForm({ initialValues, onSubmit }: TemplateFormProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
     const [_, dispatch] = useGlobalState();
     const router = useRouter();
 
     const [screenIndex, setScreenIndex] = useState(0);
+    const [configId, setConfigId] = useState(initialValues?.config?.id);
     const [rowIndex, setRowIndex] = useState(-1);
     const [fieldIndex, setFieldIndex] = useState(-1);
     const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
     const [showLeaveDialog, setShowLeaveDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const formik = useFormikContext<FormEntryV2>();
-    const values = formik.values;
+
+    const handleSubmit: SubmitHandler<FormEntryV2> = async (data) => {
+        console.log(data)
+    }
+
+    const form = useForm<FormEntryV2>({
+        defaultValues: initialValues,
+      });
+
+    const {
+        control,
+        watch,
+        formState: { isDirty, },
+        setValue,
+    } = form;
+
+    const {
+        fields: screens,
+        append: appendScreen,
+        remove: removeScreen,
+    } = useFieldArray({
+        control,
+        name: `config.screens`
+    });
+
+    const {
+        fields: rows,
+        append: appendRow,
+        insert: insertRow,
+        remove: removeRow,
+    } = useFieldArray({
+        control: form.control,
+        name: `config.screens.${screenIndex}.rows`,
+    });
+    
+    const screen = screens[screenIndex];
 
     useEffect(() => {
         dispatch('SET_DRAWER_VISIBLE', true);
@@ -59,7 +91,7 @@ export function TemplateForm({ showDrawer, isDirty, configId, screenCount, submi
 
     async function handleSaveAndQuit() {
         try {
-            await submitForm();
+            await formSubmit();
             router.replace('/');
         }
         catch (e) {
@@ -83,8 +115,8 @@ export function TemplateForm({ showDrawer, isDirty, configId, screenCount, submi
         }
     }
 
-    function handleAddScreenPress(arrayHelper: FieldArrayRenderProps) {
-        const position = values.config.screens.length;
+    function handleAddScreen() {
+        const position = screens.length;
 
         const field = createFieldConfig({
             name: `screens[${position}].rows[0].fields[0]`,
@@ -94,7 +126,8 @@ export function TemplateForm({ showDrawer, isDirty, configId, screenCount, submi
         const row = createFormRow({ fields: [field] });
         const newScreen = createFormScreenConfig({ title: '', position, rows: [row] });
 
-        arrayHelper.push(newScreen);
+        appendScreen(newScreen);
+
         setScreenIndex(position);
     }
 
@@ -109,62 +142,77 @@ export function TemplateForm({ showDrawer, isDirty, configId, screenCount, submi
         dispatch('SET_DRAWER_CONFIG_TYPE', 'FIELD');
     }
 
-    function handleAddFieldPress(arrayHelper: FieldArrayRenderProps) {
-        const selectedRow = values.config.screens[screenIndex]?.rows[rowIndex];
-        const fieldIndex = selectedRow?.fields 
-            ? selectedRow.fields.length 
-            : -1;
-
-        const name = `screens[${screenIndex}].rows[${rowIndex}].fields[${fieldIndex}]`;
-        const newField = createFieldConfig({ name, type: 'TEXT', });
-        const entry = createFieldEntry();
-
-         formik.setFieldValue(`values.${newField.entryKey}`, entry);
-        arrayHelper.push(newField);
-
-        setFieldIndex(fieldIndex);
-    }
-
-    function handleDeleteFieldPress(arrayHelper: FieldArrayRenderProps, fieldIndex: number) {
-        arrayHelper.remove(fieldIndex);
-    }
-
     function handleRowPress(index: number) {
         setRowIndex(index);
         dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW');
     }
 
-    function handleAddRowPress(rowArrayHelper: FieldArrayRenderProps) {
-        const screen = values.config.screens[screenIndex];
+    function handleDeleteRow(rowToDeleteIndex: number) {
+        removeRow(rowToDeleteIndex);
+        
+        if (rowToDeleteIndex !== rowIndex) {
+            return;
+        }
+
+        const newRowIndex = getNewIndexOnDeleted(screen?.rows || [], rowToDeleteIndex);
+        const newFieldIndex = newRowIndex === -1 ? -1 : 0;
+
+        setRowIndex(newRowIndex);
+        setFieldIndex(newFieldIndex);
+    }
+
+    function handleAddRow() {
+        const screen = screens[screenIndex];
         const name = `config.screens[${screenIndex}].rows[${screen.rows.length}].fields[0]`;
 
         const field = createFieldConfig({
-            name,
+        name,
             type: 'TEXT',
             label: ''
         });
 
         const row = createFormRow({ fields: [field] });
-        rowArrayHelper.insert(rowIndex + 1, row);
+        insertRow(rowIndex + 1, row);
 
         setRowIndex(rowIndex + 1);
         setFieldIndex(0);
-
         dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW');
     }
 
-    function handleDeleteRowPress(rowArrayHelper: FieldArrayRenderProps) {
-        const newRowIndex = screenIndex - 1;
-        const newFieldIndex = newRowIndex === -1 ? -1 : 0;
+    function getNewIndexOnDeleted(arr: any[] = [], deletedIndex: number) {
+        if (arr.length < 2) {
+            return -1;
+        }
 
+        if (deletedIndex === 0) {
+            return deletedIndex + 1;
+        }
+
+        return deletedIndex - 1;
+    }
+
+    function handleDeleteScreen(index: number) {
+        removeScreen(screenIndex);
+
+        if (screenIndex !== index) {
+            return;
+        }
+
+        const newScreenIndex = getNewIndexOnDeleted(screens, index);
+        setScreenIndex(newScreenIndex);
+
+        const screen = screens[newScreenIndex];
+        const rowCount = screen?.rows?.length || 0;
+        const newRowIndex = rowCount > 0 ? 0 : -1;
         setRowIndex(newRowIndex);
-        setFieldIndex(newFieldIndex);
 
-        rowArrayHelper.remove(rowIndex);
+        const fieldCount = screen?.rows[newRowIndex]?.fields?.length || 0;
+        const newFieldIndex = fieldCount > 0 ? 0 : -1;
+        setFieldIndex(newFieldIndex);
     }
 
     function handleMoveRow(dir: 'UP' | 'DOWN') {
-        const screen = values.config.screens[screenIndex];
+        const screen = screens[screenIndex];
 
         if (dir === 'UP') {
             const newRowIndex = rowIndex - 1;
@@ -188,27 +236,7 @@ export function TemplateForm({ showDrawer, isDirty, configId, screenCount, submi
         }
     }
 
-    function handleChangeFieldOrder(from: number, to: number, arrayHelper: FieldArrayRenderProps) {
-        arrayHelper.move(from, to);
-        setFieldIndex(to);
-    }
-
-    function handleDeleteScreenPress(arrayHelper: FieldArrayRenderProps) {
-        if (values.config.screens.length <= 1) {
-            return;
-        }
-
-        arrayHelper.remove(screenIndex);
-
-        const newScreen = values.config.screens[0];
-        setScreenIndex(0);
-        setRowIndex(newScreen.rows.length - 1);
-        setFieldIndex(-1);
-    }
-
-    function handleChangeScreenIndex(screenIndex: number) {
-        setScreenIndex(screenIndex);
-    }
+    const formSubmit = form.handleSubmit(onSubmit);
 
     return (
         <GestureHandlerRootView style={{ flexGrow: 1, }}>
@@ -233,68 +261,57 @@ export function TemplateForm({ showDrawer, isDirty, configId, screenCount, submi
                         />
                     )
                 }
-                <FieldArray
-                    name='config.screens'
-                    render={arrayHelper => (
-                        <View style={styles.page}>
-                            <DrawerMenu
-                                form={values.config}
-                                onScreenChange={(newScreenIndex) => {
-                                    setScreenIndex(newScreenIndex);
-                                    setRowIndex(0);
-                                    setFieldIndex(0);
-                                }}
-                                screens={values.config.screens}
-                                screenIndex={screenIndex}
-                                onAddScreenPress={() => handleAddScreenPress(arrayHelper)}
-                                selectedRowIndex={rowIndex}
-                                onAddFieldPress={handleAddFieldPress}
-                                onEditFieldPress={handleEditFieldPress}
-                                selectedFieldIndex={fieldIndex}
-                                onDeleteFieldPress={handleDeleteFieldPress}
-                                onDeleteRowPress={handleDeleteRowPress}
-                                onChangeRowPress={handleRowPress}
-                                onChangeFieldOrder={handleChangeFieldOrder}
-                                onDeleteScreenPress={() => handleDeleteScreenPress(arrayHelper)}
-                            />
-                            <View style={styles.container}>
-                                {
-                                    values.config.screens[screenIndex] && (
-                                        <FieldArray
-                                            name={`config.screens[${screenIndex}].rows`}
-                                            render={rowArrayHelper => (
-                                                <DataCollectionForm
-                                                    key={`screen-${screenIndex}`}
-                                                    screenIndex={screenIndex}
-                                                    selectedRowIndex={rowIndex}
-                                                    setSelectedRowIndex={(rowIndex) => {
-                                                        setRowIndex(rowIndex);
-                                                        setFieldIndex(0);
-                                                    }}
-                                                    isDesignMode={true}
-                                                    initialValues={values}
-                                                    onSubmit={submitForm}
-                                                    form={values}
-                                                    onAddRowPress={() => handleAddRowPress(rowArrayHelper)}
-                                                    onChangeRowPress={handleMoveRow}
-                                                    onRowPress={handleRowPress}
-                                                    onFieldPress={handleFieldPress}
-                                                    onDiscardPress={handleDiscard}
-                                                    onDeleteFormPress={() => setShowDeleteDialog(true)}
-                                                    onChangeScreen={handleChangeScreenIndex}
-                                                />
-                                            )}
-                                        />
-                                    )
-                                }
-                            </View>
-                        </View>
-
-                    )}
-                />
+                <View style={styles.page}>
+                    <DrawerMenu
+                        onScreenChange={(newScreenIndex) => {
+                            setScreenIndex(newScreenIndex);
+                            setRowIndex(0);
+                            setFieldIndex(0);
+                            dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW');
+                        }}
+                        screenIndex={screenIndex}
+                        onAddScreen={handleAddScreen}
+                        selectedRowIndex={rowIndex}
+                        onFieldAdded={fieldIndex => setFieldIndex(fieldIndex)}
+                        onEditFieldPress={handleEditFieldPress}
+                        selectedFieldIndex={fieldIndex}
+                        setValue={setValue}
+                        control={control}
+                        onDeleteRow={handleDeleteRow}
+                        onFieldDeleted={(fi) => handleFieldPress(rowIndex, fi)}
+                        onRowPress={handleRowPress}
+                        onDeleteScreen={handleDeleteScreen}
+                        onAddRow={handleAddRow}
+                    />
+                    <View style={styles.container}>
+                        {
+                            screen && (
+                                <DataCollectionFormContent
+                                    key={`screen-${screenIndex}`}
+                                    form={form}
+                                    screenIndex={screenIndex}
+                                    selectedRowIndex={rowIndex}
+                                    setSelectedRowIndex={(rowIndex) => {
+                                        setRowIndex(rowIndex);
+                                        setFieldIndex(0);
+                                    }}
+                                    isDesignMode={true}
+                                    initialValues={initialValues}
+                                    onSubmit={() => formSubmit()}
+                                    onChangeRowPress={handleMoveRow}
+                                    onRowPress={handleRowPress}
+                                    onFieldPress={handleFieldPress}
+                                    onDiscardPress={handleDiscard}
+                                    onDeleteFormPress={() => setShowDeleteDialog(true)}
+                                    onChangeScreen={screenIndex => setScreenIndex(screenIndex)}
+                                    submitForm={() => formSubmit()}
+                                />
+                            )
+                        }
+                    </View>
+                </View>
             </ScrollView>
         </GestureHandlerRootView>
-
     )
 }
 

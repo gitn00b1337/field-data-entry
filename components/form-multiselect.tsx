@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useField } from 'formik';
 import { View, StyleSheet, Text } from "react-native";
 import { MultiSelect, } from 'react-native-element-dropdown';
 import { MD3Theme, useTheme } from "react-native-paper";
 import { deferredEffect } from "../lib/effect";
+import { Control, Path, useController } from "react-hook-form";
+import { FormEntryV2 } from "../lib/config";
 
 export type FormMultiSelectFieldProps = {
     fieldName: string;
@@ -17,6 +18,7 @@ export type FormMultiSelectFieldProps = {
     allOptionLabel?: string;
     onChange?: (vals: string[]) => void;
     isDisabled?: boolean;
+    control: Control<FormEntryV2, any>;
 }
 
 export function FormMultiSelectField({
@@ -27,13 +29,21 @@ export function FormMultiSelectField({
     hasAllOption = false,
     allOptionLabel = 'All Options',
     onChange,
+    control,
 }: FormMultiSelectFieldProps) {
-    const [field, meta, helpers] = useField(fieldName);
     const [isFocus, setIsFocus] = useState(false);
-    const [placeholder, setPlaceholder] = useState(getPlaceholder);
 
     const theme = useTheme();
     const styles = makeStyles(theme);
+
+    const {
+        field,
+    } = useController({
+        name: fieldName as Path<FormEntryV2>,
+        control,
+    });
+
+    const fieldValue = field?.value as string;
 
     useEffect(() => {
         if (isFocus && onFocus) {
@@ -42,24 +52,23 @@ export function FormMultiSelectField({
     }, [isFocus]);
 
     deferredEffect(() => {
-        const newPlaceholder = getPlaceholder();
-        setPlaceholder(newPlaceholder);
-
         if (typeof onChange === 'function') {
-            onChange(field.value);
+            onChange(fieldValue?.split(','));
         }
     }, [ field.value ]);
 
     function getPlaceholder() {
-        if (hasAllOption && !field.value?.length) {
+        if (hasAllOption && !fieldValue?.length) {
             return allOptionLabel;
         }
 
-        if (!Array.isArray(field.value) || field.value.length < 1) {
+        const value = getValue();
+
+        if (value.length < 1) {
             return 'Select items...';
         }
 
-        return options.filter(op => field.value.indexOf(op.value) > -1)
+        return options.filter(op => value?.indexOf(op.value) > -1)
             .reduce((str, op, index) => {
                 if (index === 0) {
                     return op.label;
@@ -67,6 +76,17 @@ export function FormMultiSelectField({
 
                 return `${str}, ${op.label}`;
             }, '')
+    }
+
+    function getValue(): string[] {
+        if (typeof fieldValue === 'string') {
+            return fieldValue?.split(',');
+        }
+        else if (Array.isArray(fieldValue)) {
+            return fieldValue;
+        }
+
+        return [];
     }
 
     return (
@@ -85,14 +105,14 @@ export function FormMultiSelectField({
                 maxHeight={300}
                 labelField={'label'}
                 valueField={'value'}
-                placeholder={placeholder}
+                placeholder={getPlaceholder()}
                 searchPlaceholder="Search..."
                 itemContainerStyle={{ marginLeft: 0, paddingLeft: 0, left: 0 }}
-                value={field.value}
+                value={getValue()}
                 onFocus={() => setIsFocus(true)}
                 onBlur={() => setIsFocus(false)}
                 onChange={values => {
-                    helpers.setValue(values);
+                    field?.onChange(values?.join(','));
                     setIsFocus(false);
                 }}
                 visibleSelectedItem={false}

@@ -279,8 +279,8 @@ export async function saveEntry(entry: FormEntryV2): Promise<number> {
     }
 }
 
-export function deleteConfiguration(config: FormConfig) {
-    if (!config.id) {
+export function deleteConfiguration(configId: number) {
+    if (!configId) {
         throw new Error(`Configuration cannot be deleted. It must have an ID!`);
     }
 
@@ -290,7 +290,7 @@ export function deleteConfiguration(config: FormConfig) {
     `;
 
     console.log('Deleting configuration...')
-    return runTransaction(sql, [ config.id ]);
+    return runTransaction(sql, [ configId ]);
 }
 
 export function deleteEntry(entry: FormEntryV2) {

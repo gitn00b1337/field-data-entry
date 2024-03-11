@@ -1,36 +1,36 @@
 import { StyleSheet, TouchableOpacity, View, } from "react-native";
-import { FormConfig, GlobalFieldConfig, createGlobalField, } from "../../lib/config";
-import { Text,  MD3Theme, Button, useTheme, } from 'react-native-paper';
+import { FormEntryV2, createFieldConfig, createFormRow, createFormScreenConfig, } from "../../lib/config";
+import { Text,  MD3Theme, Button, } from 'react-native-paper';
 import React from 'react';
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
-import { FieldArray, FieldArrayRenderProps } from "formik";
-import { FormSelectField } from "../../components/form-select";
-import { FormInput } from "../../components/form-input";
-import { useGlobalState } from "../global-state";
+import { Control, useFieldArray, useWatch } from "react-hook-form";
 
 export type DrawerScreenContentProps = {
-    form: FormConfig;
     theme: MD3Theme;
     onScreenChange: (index: number) => void;
     screenIndex: number;
-    onAddScreenPress: () => void;
-    onDeleteScreenPress: () => void;
+    control: Control<FormEntryV2, any>;
+    onAddScreen: () => void;
+    onDeleteScreen: (screenIndex: number) => void;
 }
 
 export function DrawerScreenContent({
     theme,
-    form,
     onScreenChange,
     screenIndex,
-    onAddScreenPress,
-    onDeleteScreenPress,
+    onAddScreen,
+    onDeleteScreen,
+    control,
 }: DrawerScreenContentProps) {
     const styles = makeStyles(theme);
-    const [state, dispatch] = useGlobalState();
-    
+     
+    const screens = useWatch({
+        control,
+        name: 'config.screens',
+    });
+
     function handleScreenPress(newScreenIndex: number) {
         onScreenChange(newScreenIndex);
-        dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW');
     }
 
     return (
@@ -42,9 +42,9 @@ export function DrawerScreenContent({
                     </Text>
                 </View>
                 {
-                    form.screens.map((screen, index) => (
+                    screens.map((screen, index) => (
                         <View 
-                            key={`screen-${index}`}
+                            key={screen.key}
                             style={{ ...styles.row, ...styles.screenRow, ...(screenIndex === index ? styles.activeRow : {}) }}
                         >
                             <TouchableOpacity
@@ -59,7 +59,11 @@ export function DrawerScreenContent({
                                 <DotsPopupMenu
                                     size={20}
                                     actions={[
-                                        { key: 'delete', label: 'Delete', onPress: () => onDeleteScreenPress() }
+                                        { 
+                                            key: 'delete', 
+                                            label: 'Delete', 
+                                            onPress: () => onDeleteScreen(index),
+                                        }
                                     ]}
                                 />
                             </View>
@@ -68,7 +72,7 @@ export function DrawerScreenContent({
                 }
                 <View style={styles.row}>
                     <View style={{ flexGrow: 1, }}>
-                        <Button onPress={onAddScreenPress}>Add Screen</Button>
+                        <Button onPress={onAddScreen}>Add Screen</Button>
                     </View>
                 </View>
             </View>

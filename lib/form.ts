@@ -25,10 +25,10 @@ export function sanitizeConfig(config: FormConfig): FormConfig {
 
         for (const row of screen.rows) {
             row.fields = row.fields?.filter(f => !!f) || [];
-            row.key = row.key || generateUUID();
+            row.id = row.id || generateUUID();
 
             for (const field of row.fields) {
-                field.key = field.key || generateUUID();
+                field.id = field.id || generateUUID();
             }
         }
     }

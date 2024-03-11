@@ -1,78 +1,78 @@
 import { View, StyleSheet, } from "react-native";
 import { Button, IconButton, MD3Theme, Text, useTheme, } from "react-native-paper";
-import { FormConfig, FormFieldConfig, FormScreenConfig, FormTrigger, createTrigger } from "../../lib/config";
-import { FieldArray, FieldArrayRenderProps } from "formik";
+import { FormEntryV2, FormFieldConfig, FormScreenConfig, FormTrigger, createTrigger } from "../../lib/config";
 import { FormSelectField } from "../../components/form-select";
 import { FormMultiSelectField } from "../../components/form-multiselect";
 import { useEffect, useState } from "react";
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
+import { Control, useFieldArray } from "react-hook-form";
 
 type DrawerTriggersContentProps = {
     theme: MD3Theme;
-    form: FormConfig;
     screen: FormScreenConfig;
     screenIndex: number;
+    control: Control<FormEntryV2, any>;
 }
 
 export function DrawerTriggersContent({
     theme,
-    form,
     screen,
     screenIndex,
+    control,
 }: DrawerTriggersContentProps) {
     const styles = makeStyles(theme);
 
-    function handleAddTriggerPress(helper: FieldArrayRenderProps) {
+    const triggers = useFieldArray({
+        control,
+        name: `config.screens.${screenIndex}.triggers`,
+    });
+
+    function handleAddTriggerPress() {
         if (!screen) {
             // todo notify user to click a screen.
             return;
         }
 
         const trigger = createTrigger(screen.key);
-        helper.push(trigger);
+        triggers.append(trigger);
     }
 
     return (
-        <FieldArray
-            name={`config.screens[${screenIndex}].triggers`}
-            render={(arrayHelper) => (
-                <View style={styles.navContainer}>
-                    <View style={styles.headerContainer}>
-                        <Text style={styles.header}>Form Triggers</Text>
-                    </View>
-                    {
-                        screen.triggers.map((trigger, index) => (
-                            <FormTriggerConfig 
-                                key={`formtrigger-${index}`} 
-                                trigger={trigger} 
-                                index={index} 
-                                screen={screen}
-                                onDeletePress={() => arrayHelper.remove(index)}
-                                screenIndex={screenIndex}
-                            />
-                        ))
-                    }
-                    <View style={[styles.row, { flexDirection: 'column' }]}>
-                        <View style={styles.addFieldDivider} />
-                        <View style={styles.addFieldContainer}>
-                            <IconButton
-                                icon='plus-circle-outline'
-                                size={16}
-                            />
-                            <Button
-                                style={styles.addFieldBtn}
-                                contentStyle={styles.addFieldBtnContent}
-                                labelStyle={styles.addFieldBtnText}
-                                onPress={() => handleAddTriggerPress(arrayHelper)}
-                            >
-                                Add Trigger
-                            </Button>
-                        </View>
-                    </View>
+        <View style={styles.navContainer}>
+            <View style={styles.headerContainer}>
+                <Text style={styles.header}>Form Triggers</Text>
+            </View>
+            {
+                screen.triggers.map((trigger, index) => (
+                    <FormTriggerConfig 
+                        key={`formtrigger-${index}`} 
+                        trigger={trigger} 
+                        index={index} 
+                        screen={screen}
+                        onDeletePress={() => triggers.remove(index)}
+                        screenIndex={screenIndex}
+                        control={control}
+                    />
+                ))
+            }
+            <View style={[styles.row, { flexDirection: 'column' }]}>
+                <View style={styles.addFieldDivider} />
+                <View style={styles.addFieldContainer}>
+                    <IconButton
+                        icon='plus-circle-outline'
+                        size={16}
+                    />
+                    <Button
+                        style={styles.addFieldBtn}
+                        contentStyle={styles.addFieldBtnContent}
+                        labelStyle={styles.addFieldBtnText}
+                        onPress={handleAddTriggerPress}
+                    >
+                        Add Trigger
+                    </Button>
                 </View>
-            )}
-        />
-
+            </View>
+        </View>
     )
 }
 
@@ -82,6 +82,7 @@ type FormTriggerConfigProps = {
     screen: FormScreenConfig;
     onDeletePress: () => void;
     screenIndex: number;
+    control: Control<FormEntryV2, any>;
 }
 
 function FormTriggerConfig({
@@ -90,6 +91,7 @@ function FormTriggerConfig({
     screen,
     onDeletePress,
     screenIndex,
+    control,
 }: FormTriggerConfigProps) {
     const [fieldsAvailable, setFieldsAvailable] = useState<FormFieldConfig[]>([]);
     const theme = useTheme();
@@ -98,14 +100,14 @@ function FormTriggerConfig({
         ...fieldsAvailable.map((f, fIndex) => {
             return {
                 label: f.label || 'New field' ,
-                value: f.key,
+                value: f.id,
             }
         }),
     ]
 
     useEffect(() => {
         const fields = trigger.rows.reduce<FormFieldConfig[]>((fields, rowKey) => {
-            const row = screen.rows.find(r => r.key === rowKey);
+            const row = screen.rows.find(r => r.id === rowKey);
 
             if (!row?.fields) {
                 return fields;
@@ -133,9 +135,10 @@ function FormTriggerConfig({
                     options={screen.rows.map((row, rowIndex) => {
                         return {
                             label: `Row ${rowIndex+1}`,
-                            value: row.key,
+                            value: row.id,
                         }
                     })}
+                    control={control}
                 />
             </View>
             <View>
@@ -144,14 +147,17 @@ function FormTriggerConfig({
                     label='Target field(s)'
                     options={fieldOptions}    
                     hasAllOption={true}   
-                    allOptionLabel="All Fields"                                         
+                    allOptionLabel="All Fields"     
+                    control={control}                                    
                 />
             </View>
             <View>
                 <FormSelectField
                     fieldName={`screens[${screenIndex}].triggers[${index}].action`}
                     label='Action'
-                    options={[{ value: 'COPY_ROWS', label: 'Copy Rows' }]}                                         
+                    options={[{ value: 'COPY_ROWS', label: 'Copy Rows' }]}
+                    control={control}   
+                    defaultValue="COPY_ROWS"                                     
                 />
             </View>
             </View>

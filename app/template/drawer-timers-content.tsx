@@ -1,90 +1,79 @@
 import { StyleSheet, View, } from "react-native";
-import { FormConfig, GlobalFieldConfig, createGlobalField, } from "../../lib/config";
+import { FormEntryV2, GlobalFieldConfig, createGlobalField, } from "../../lib/config";
 import { Text,  MD3Theme, Button, useTheme, } from 'react-native-paper';
 import React from 'react';
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
-import { FieldArray, FieldArrayRenderProps } from "formik";
 import { FormSelectField } from "../../components/form-select";
 import { FormInput } from "../../components/form-input";
+import { Control, useFieldArray, useWatch } from "react-hook-form";
 
 export type DrawerTimersContentProps = {
-    form: FormConfig;
     theme: MD3Theme;
+    control: Control<FormEntryV2, any>;
 }
 
 export function DrawerTimersContent({
     theme,
-    form,
+    control,
 }: DrawerTimersContentProps) {
     const styles = makeStyles(theme);
 
-    function handleAddMultiScreenFieldPress(arrayHelper: FieldArrayRenderProps) {
+    const globalFields = useFieldArray({
+        control,
+        name: 'config.globalFields'
+    })
+
+    function handleAddMultiScreenFieldPress() {
         const field = createGlobalField({
-            name: `globalFields[${form.globalFields.length}]`,
+            name: `globalFields[${globalFields.fields.length}]`,
         });
 
-        arrayHelper.push(field);
+        globalFields.append(field);
     }
 
     return (
-        <FieldArray
-            name='config.globalFields'
-            render={globalFieldArrayHelper => (
-                <View style={styles.navContainer}>
-                    <View style={styles.screensContainer}>
-                        <View style={styles.row}>
-                                <Text style={styles.header}>
-                                    Timers
-                                </Text>
-                            </View>
-                        </View>
-                        <View>
-                        <FieldArray
-                            name='config.globalFields'
-                            render={arrayHelper => (
-                                <>
-                                    {
-                                        form.globalFields.map((f, index) => (
-                                            <GlobalFieldConfigView 
-                                                key={f.key} 
-                                                field={f}
-                                                arrayHelper={arrayHelper}
-                                                index={index} 
-                                            />
-                                        ))
-                                    }
-                                </>
-                            )}
-                        />
-                        </View>
-                        <View style={styles.row}>
-                            <View style={{ flexGrow: 1, }}>
-                                <Button onPress={() => handleAddMultiScreenFieldPress(globalFieldArrayHelper)}>Add Timer</Button>
-                            </View>
-                        </View>
+        <View style={styles.navContainer}>
+            <View style={styles.screensContainer}>
+                <View style={styles.row}>
+                        <Text style={styles.header}>
+                            Timers
+                        </Text>
+                    </View>
                 </View>
-            )}
-        />
+                <View>
+                {
+                    globalFields.fields.map((f, index) => (
+                        <GlobalFieldConfigView 
+                            key={f.key} 
+                            field={f}
+                            onDelete={() => globalFields.remove(index)}
+                            control={control}
+                        />
+                    ))
+                }                       
+                </View>
+                <View style={styles.row}>
+                    <View style={{ flexGrow: 1, }}>
+                        <Button onPress={handleAddMultiScreenFieldPress}>Add Timer</Button>
+                    </View>
+                </View>
+        </View>
     )
 }
 
 type GlobalFieldConfigProps = {
     field: GlobalFieldConfig;
-    index: number;
-    arrayHelper: FieldArrayRenderProps;
+    onDelete: () => void;
+    control: Control<FormEntryV2, any>;
 }
 
 function GlobalFieldConfigView({
     field,
-    index,
-    arrayHelper,
+    onDelete,
+    control,
 }: GlobalFieldConfigProps) {
     const theme = useTheme();
     const styles = makeGlobalFieldStyles(theme);
-
-    function handleDelete() {
-        arrayHelper.remove(index);
-    }
 
     return (
         <View style={styles.container}>
@@ -93,20 +82,25 @@ function GlobalFieldConfigView({
                     <FormInput
                         fieldName={`${field.name}.label`}
                         label='Label'
+                        control={control}
                     />
                 </View>
                 <View style={styles.row}>
                     <FormSelectField
                         fieldName={`${field.name}.position`}
                         options={[{ label: 'Floating Button', value: 'FLOATING_BUTTON_BR' }, { label: 'Heading', value: 'HEADER' }]} 
-                        label='Position'            
+                        label='Position'           
+                        control={control} 
+                        defaultValue="FLOATING_BUTTON_BR"
                     />
                 </View>
                 <View style={styles.row}>
                     <FormSelectField
                         fieldName={`${field.name}.startTrigger`}
                         options={[{ label: 'Manual', value: 'MANUAL' }, { label: 'On Form Created', value: 'ON_FORM_CREATED' }]} 
-                        label='Start Trigger'            
+                        label='Start Trigger'    
+                        control={control}       
+                        defaultValue='MANUAL' 
                     />
                 </View>
             </View>
@@ -114,7 +108,11 @@ function GlobalFieldConfigView({
                 <DotsPopupMenu
                     size={20}
                     actions={[
-                        { key: 'delete', label: 'Delete', onPress: handleDelete }
+                        { 
+                            key: 'delete', 
+                            label: 'Delete', 
+                            onPress: onDelete,
+                        }
                     ]}
                 />
             </View>

@@ -1,11 +1,12 @@
 import moment from 'moment';
 import { generateUUID } from './utils';
+import { FieldPath, FieldValues, Path } from 'react-hook-form';
 
 export type FormActionType = 'COPY_ROWS';
 export type FormActionCondition = 'HAS_VALUE';
 export type FormFieldOnChangeAction = 'NONE' | 'CREATE_BLANK';
 
-export type FormFieldType = 'TEXT' | 'WHOLE_NUMBER' | 'SELECT' | 'MULTI_SELECT' | 'NUMERIC' | 'CHECKBOX' | 'TIMER';
+export type FormFieldType = 'TEXT' | 'WHOLE_NUMBER' | 'SELECT' | 'NUMERIC' | 'CHECKBOX' | 'TIMER';
 export type GlobalFieldType = 'TIMER';
 
 export type FormConfig = {
@@ -107,22 +108,28 @@ export type FormRow = {
     /**
      * Unique (per form) key for this row.
      */
-    key: string;
+    id: string;
     /**
      * The fields for a given row.
      */
     fields: FormFieldConfig[];
+    /**
+     * The id matching a group of rows
+     */
+    groupId: string;
+    /**
+     * The id of the original form row if this is a copy
+     */
+    parentId: string;
 
-    copyIndex: number;
-
-    copyTrigger: string;
+    hasCopyNewBtn: boolean;
 }
 
 export type FormFieldConfig = {
     /**
-     * Unique (per form) key for this row.
+     * Unique (per form) id for this row.
      */
-    key: string;
+    id: string;
     label: string;
     type: FormFieldType;
     options: FormFieldOptionConfig[];
@@ -159,16 +166,19 @@ export function createFormRow({
     fields = [],
     copyIndex = 0,
     copyTrigger,
+    hasCopyNewBtn = false,
 }: {
     fields?: FormFieldConfig[];
     copyIndex?: number;
     copyTrigger?: string;
+    hasCopyNewBtn?: boolean;
 }): FormRow {
     return {
-        key: generateUUID(),
+        id: generateUUID(),
         fields,
-        copyIndex,
-        copyTrigger,
+        groupId: '',
+        parentId: '',
+        hasCopyNewBtn,
     };
 }
 
@@ -196,7 +206,7 @@ export function createFieldConfig({
         options,
         defaultValue,
         multiSelect,
-        key: generateUUID(),
+        id: generateUUID(),
         entryKey: generateUUID(),
     };
 }
@@ -331,7 +341,7 @@ function createEntryValues(config: FormConfig) {
                     field.entryKey = generateUUID();
                 }
 
-                values[field.entryKey] = createFieldEntry();
+                values[field.entryKey] = createFieldEntry(field.defaultValue);
             }
         }
     }

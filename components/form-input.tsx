@@ -1,26 +1,38 @@
+import { Control, Path, useController } from "react-hook-form";
 import { StyleSheet,} from "react-native";
 import { MD3Theme, TextInput, TextInputProps, useTheme } from "react-native-paper";
-import { useField, } from 'formik';
+import { FormEntryV2 } from "../lib/config";
 
 export type FormInputProps = {
     fieldName: string;
     label: string;
+    control: Control<FormEntryV2, any>;
 } & TextInputProps
 
 export function FormInput({
     fieldName,
     label,
+    control,
     ...textInputProps
 }: FormInputProps) {
     const theme = useTheme();
-    const [field, meta, helpers] = useField(fieldName);
     const styles = makeStyles(theme);
 
+    const {
+        field,
+        fieldState,
+    } = useController({
+        name: fieldName as Path<FormEntryV2>,
+        control,
+    });
+
+    console.log(field)
+    
     return (
         <TextInput
             label={label}
-            value={field.value}
-            onChangeText={text => helpers.setValue(text)}
+            value={field.value as string}
+            onChangeText={text => field.onChange(text)}
             style={styles.field}
             mode='flat'
             outlineColor={theme.colors.outline}

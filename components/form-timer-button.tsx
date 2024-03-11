@@ -1,10 +1,10 @@
 import { View, TouchableOpacity, StyleSheet, GestureResponderEvent } from "react-native";
-import { FormEntryValue, GlobalFieldConfig, GlobalFieldPosition, } from "../lib/config";
+import { FormEntryV2, GlobalFieldPosition, } from "../lib/config";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FieldInputProps, connect, useField, } from "formik";
 import { Icon, MD3Theme, Menu, Text, useTheme } from "react-native-paper";
 import moment from "moment";
 import { formatTotalSecondsToTimeString } from "../lib/utils";
+import { Control, Path, useController } from "react-hook-form";
 
 export type TimerPosition = GlobalFieldPosition | 'IN_FORM';
 
@@ -12,48 +12,69 @@ export type FormTimerButtonProps = {
     entryKey: string;
     position: TimerPosition;
     label: string;
+    control: Control<FormEntryV2, any>;
+    onPress?: () => void;
+    isDisabled?: boolean;
 }
 
-export function FormTimerButton(props: FormTimerButtonProps) {
-    const [formField, timeMeta, timeHelpers] = useField(`values.${props.entryKey}`);
-
+export function FormTimerButton({
+    entryKey,
+    position,
+    label,
+    control,
+    onPress,
+    isDisabled,
+}: FormTimerButtonProps) {
     return (
         <TimerButton
-            position={props.position}
-            formField={formField.value}
-            setFormField={timeHelpers.setValue}
-            label={props.label}
+            position={position}
+            label={label}
+            control={control}
+            entryKey={entryKey}
+            onPress={onPress}
+            isDisabled={isDisabled}
         />
     )
 }
 
 type TimerButtonProps = {
     position: TimerPosition,
-    formField: FormEntryValue<number>;
-    setFormField: (val: FormEntryValue<number>) => void;
     label: string;
+    control: Control<FormEntryV2, any>;
+    entryKey: string;
+    onPress?: () => void;
+    isDisabled?: boolean;
 }
 
 /**
- * Header bar lies outside formik context reach so need a separate timer button 
+ * Header bar lies outside context reach so need a separate timer button 
  */
 export function TimerButton({
     position,
-    formField,
-    setFormField,
     label,
+    control,
+    entryKey,
+    onPress,
+    isDisabled,
 }: TimerButtonProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
 
-    const [isRunning, setIsRunning] = useState(formField?.meta?.state === 'RUNNING');
-    const [currentTime, setCurrentTime] = useState(formField?.value || 0);
+    const {
+        field,
+    } = useController({
+        control,
+        name: `values.${entryKey}`
+    });
+
+    const [isRunning, setIsRunning] = useState<boolean>(field?.value?.meta?.state === 'RUNNING');
+    const [currentTime, setCurrentTime] = useState<number>(Number(field?.value?.value) || 0);
     const [showResetMenu, setShowResetMenu] = useState(false);
     const [menuAnchor, setMenuAnchor] = useState({ x: 0, y: 0 })
 
     const timeStr = useMemo(() => 
-        formatTotalSecondsToTimeString(formField?.value)
-    , [ formField?.value ]);
+        formatTotalSecondsToTimeString(Number(field?.value?.value))
+    , [ field?.value?.value ]);
 
     const intervalRef = useRef<NodeJS.Timeout>();
 
@@ -61,38 +82,15 @@ export function TimerButton({
         if (intervalRef.current) {
             clearInterval(intervalRef.current);
         }
-
-        setFormField({
-            value: formField?.value || 0,
-            meta: {
-                state: 'RUNNING',
-                history: [
-                    ...(formField?.meta?.history || []),
-                    { state: 'RUNNING', timestamp: moment().utc().toISOString() },
-                ],
-                lastValue: currentTime,
-            },
-        });
         
-        setCurrentTime(formField?.value || 0);
+        setIsRunning(true);
+        setCurrentTime(Number(field?.value?.value) || 0);
         intervalRef.current = setInterval(onInterval, 1000);
     }
 
     function stopTimer() {
         clearInterval(intervalRef.current);
-
-        setFormField({
-            ...formField,
-            value: currentTime,
-            meta: {
-                state: 'STOPPED',
-                history: [
-                    ...(formField.meta?.history || []),
-                    { state: 'STOPPED', timestamp: moment().utc().toISOString() },
-                ],
-                lastValue: currentTime,
-            },
-        });
+        setIsRunning(false);
     }
 
     function onInterval() {
@@ -100,13 +98,28 @@ export function TimerButton({
     }
 
     useEffect(() => {
-        setFormField({
-            ...formField,
+        console.log(`Updating to ${currentTime}`)
+        field.onChange({
+            ...field.value,
             value: currentTime,
         });
-    }, [currentTime])
+    }, [currentTime]);
 
     useEffect(() => {
+        const state = isRunning ? 'RUNNING' : 'STOPPED';
+
+        field.onChange({
+            value: currentTime,
+            meta: {
+                state,
+                history: [
+                    ...(field?.value.meta?.history || []),
+                    { state, timestamp: moment().utc().toISOString() },
+                ],
+                lastValue: currentTime,
+            },
+        });
+        
         if (isRunning) {
             console.log('Starting timer')
             startTimer();
@@ -119,7 +132,13 @@ export function TimerButton({
     }, [isRunning]);
 
     function handlePress() {
-        setIsRunning(!isRunning);
+        if (typeof onPress === 'function') {
+            onPress();
+        }
+
+        if (!isDisabled) {
+            setIsRunning(!isRunning);
+        }        
     }
 
     function getExtraStyles() {
@@ -212,9 +231,12 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         shadowColor: theme.colors.surface,
         borderRadius: theme.roundness,
         flexGrow: 1,
-        maxWidth: 240,
+        maxWidth: 'auto',
+        width: 'auto',
         paddingHorizontal: 12,
         paddingVertical: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.colors.outlineVariant,
     },
     formLabel: {
         color: theme.colors.onPrimaryContainer,

@@ -1,43 +1,41 @@
-import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { FormFieldConfig, FormRow as FormRowConfig  } from "../lib/config"
-import { MD3Theme, useTheme } from "react-native-paper";
+import { DimensionValue, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FormEntryV2, FormFieldConfig, FormRow, } from "../lib/config"
+import { MD3Theme, useTheme, Button } from "react-native-paper";
 import { FormField } from "./form-field";
+import { Control, } from "react-hook-form";
 
 export type FormRowProps = {
-    rows: GroupedRowFields;
+    row: FormRow;
     isFocused: boolean;
     onPress: (index: number) => void;
     index: number;
-    screenIndex: number;
     isDesignMode: boolean;
     onFieldPress?: (rowIndex: number, fieldIndex: number) => void;
-    onFieldChange?: (config: FormFieldConfig, value: any, rowIndex: number) => void;
-    loopIndex?: number;
+    onFieldChange?: (config: FormFieldConfig, value: any) => void;
+    control: Control<FormEntryV2, any>;
+    onCopyRow: (rowIndex: number) => void;
+    CopyButton?: React.ReactNode;
 };
 
-export type GroupedRowFields = {
-    key: string;
-    fields: FormFieldConfig[][];
-};
-
-export function FormRowGroup({
-    rows,
+export function FormEntryRow({
+    row,
     isFocused,
-    index,
     onPress,
-    screenIndex,
+    index,
     isDesignMode,
-    onFieldPress,
-    loopIndex = 0,
     onFieldChange,
+    onFieldPress,
+    control,
+    onCopyRow,
+    CopyButton,
 }: FormRowProps) {
-    if (!rows) {
-        return null;
-    }
-
     const theme = useTheme();
     const styles = makeStyles(theme);
     const focusedStyle = isFocused && isDesignMode ? styles.border : {};
+
+    if (!row) {
+        return null;
+    }
 
     function handlePress() {
         if (!isDesignMode || !onPress) {
@@ -53,32 +51,35 @@ export function FormRowGroup({
         }
 
         onFieldPress(index, fieldIndex);
-    }
+    } 
 
-    const firstRow = rows[0];
+    const flex: DimensionValue = row.fields.length > 0 
+        ? 100 / row.fields.length
+        : 1;
 
     return (
-        <TouchableOpacity onPress={handlePress} style={styles.container}>
-            <View style={{ ...styles.row, ...focusedStyle,}}>
-                {
-                    rows.fields.map((fieldGroup, fieldGroupIndex) => (
-                        <View style={[ styles.column ]} key={`field-group-${fieldGroupIndex}`}>
-                            {
-                                fieldGroup.map((field, fieldIndex) => (
-                                    <FormField
-                                        config={field}
-                                        key={`screen${screenIndex}-row${index}-grp-${fieldGroupIndex}-field${fieldIndex}`}
-                                        onPress={() => handleFieldPress(fieldGroupIndex)}
-                                        onChange={(field, value) => onFieldChange(field, value, index + fieldIndex)}
-                                        isDisabled={isDesignMode}
-                                    />
-                                ))
-                            }
-                        </View>
-                    ))
-                }
-            </View>
-        </TouchableOpacity>
+        <>
+            <TouchableOpacity onPress={handlePress} style={styles.container}>
+                <View style={{ ...styles.row, ...focusedStyle,}}>                
+                    {
+                        row.fields.map((field, fieldIndex) => (
+                            <FormField
+                                key={field.entryKey}
+                                config={field}
+                                onPress={() => handleFieldPress(fieldIndex)}
+                                onChange={(field, value) => onFieldChange(field, value)}
+                                isDisabled={isDesignMode}
+                                control={control}
+                                containerStyle={{ flex }}
+                            />
+                        ))
+                    }
+                </View>
+            </TouchableOpacity>
+            {
+                CopyButton
+            }
+        </>
     )
 }
 
@@ -99,7 +100,8 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         justifyContent: 'flex-start',
         alignContent: 'stretch',
         alignItems: 'stretch',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
     },
     column: {
         flexDirection: 'column',

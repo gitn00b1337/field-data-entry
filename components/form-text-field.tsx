@@ -1,7 +1,8 @@
 import { TextInput, TextInputProps } from "react-native-paper";
 import { FieldComponentProps } from "./form-field";
 import { useEffect, useRef } from "react";
-import { useField } from "formik";
+import { Path, useController } from "react-hook-form";
+import { FormEntryV2 } from "../lib/config";
 
 export function TextField({
     config,
@@ -9,19 +10,22 @@ export function TextField({
     onChange,
     inputProps = {},
     isDisabled,
+    control,
 }: FieldComponentProps & { inputProps?: TextInputProps }) {
     const {
         label,
         name,
     } = config;
 
-    const [field, meta, helpers] = useField(name);
+    const {
+        field,
+        fieldState,
+    } = useController({
+        name: config.name as Path<FormEntryV2>,
+        control,
+    });
+    
     const valueChanged = useRef(false);
-
-    function handleChange(val: string) {
-        helpers.setValue(val, false);
-        helpers.setTouched(true, false);
-    }
 
     useEffect(() => {
         // if it's not the first render and the value has changed, then trigger
@@ -41,7 +45,7 @@ export function TextField({
     return (
         <TextInput
             label={label || `New Field`}
-            value={field.value}
+            value={field.value as string}
             style={{ 
                 backgroundColor: '#fff', 
                 marginBottom: 0,
@@ -49,12 +53,11 @@ export function TextField({
             }}
             {...inputProps}
             onPressIn={e => {
-                helpers.setTouched(true, true);
                 onPress();
             }}
-            onChangeText={handleChange}
+            onChangeText={field.onChange}
             disabled={isDisabled}
-            onBlur={() => helpers.setTouched(true, true)}
+            onBlur={field.onBlur}
         />
     )
 }

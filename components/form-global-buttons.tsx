@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { FormEntryV2, FormEntryValue, FormEntryValues, GlobalFieldConfig, } from "../lib/config";
+import { FormEntryV2, } from "../lib/config";
 import { FAB, MD3Theme, useTheme } from "react-native-paper";
 import { Direction } from "./form-screen";
 import React, { useEffect, useState } from "react";
@@ -7,23 +7,21 @@ import { FormTimerButton, TimerButton, } from "./form-timer-button";
 import { Stack } from "expo-router";
 import { NavButton } from "./nav-button";
 import { DotsPopupMenu } from "./dots-popup-menu";
-import { useFormikContext } from "formik";
+import { Control, useWatch, } from "react-hook-form";
 
 export type FormGlobalButtonsProps = {
-    fields: GlobalFieldConfig[];
+    control: Control<FormEntryV2, any>;
     isDesignMode?: boolean;
-    onAddRowPress?: () => void;
     onChangeRowPress?: (direction: Direction) => void;
     onDiscardForm: () => void;
-    onSubmitForm: () => void;
+    onSubmitForm: () => Promise<void>;
     onDeleteForm: () => void;
     onExportForm?: () => void;
 }
 
 export function FormGlobalButtons({
-    fields,
+    control,
     isDesignMode,
-    onAddRowPress,
     onChangeRowPress,
     onDiscardForm,
     onSubmitForm,
@@ -32,9 +30,14 @@ export function FormGlobalButtons({
 }: FormGlobalButtonsProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
+
+    const fields = useWatch({
+        control,
+        name: 'config.globalFields',
+    });
+
     const [buttonFields, setButtonFields] = useState(() => fields.filter(f => f.position === 'FLOATING_BUTTON_BR'));
     const [headerFields, setHeaderFields] = useState(() => fields.filter(f => f.position === 'HEADER'));
-    const formContext = useFormikContext<FormEntryV2>();
 
     useEffect(() => {
         setButtonFields(
@@ -62,9 +65,9 @@ export function FormGlobalButtons({
                                     <TimerButton
                                         key={f.key}
                                         position={f.position}
-                                        formField={formContext.values.values[f.entryKey] as FormEntryValue<number>}
                                         label={f.label}
-                                        setFormField={val => formContext.setFieldValue(`values.${f.entryKey}`, val)}
+                                        control={control}
+                                        entryKey={f.entryKey}
                                     />
                                 ))
                             }
@@ -81,36 +84,13 @@ export function FormGlobalButtons({
                 }}
             />
             {
-                isDesignMode && (
-                    <>
-                        <FAB
-                            icon="plus"
-                            style={{ ...styles.fab, }}
-                            onPress={onAddRowPress}
-                            color={theme.colors.onPrimary}
-                        />
-                        <FAB
-                            icon="arrow-up-bold"
-                            style={{ ...styles.fab, backgroundColor: theme.colors.background, }}
-                            onPress={() => handleChangeRowPress('UP')}
-                            color={theme.colors.secondary}
-                        />
-                        <FAB
-                            icon="arrow-down-bold"
-                            style={{ ...styles.fab, backgroundColor: theme.colors.background, }}
-                            onPress={() => handleChangeRowPress('DOWN')}
-                            color={theme.colors.secondary}
-                        />
-                    </>
-                )
-            }
-            {
                 buttonFields.map(f => (
                     <FormTimerButton
                         key={`${f.key}`}
                         entryKey={f.entryKey}
                         position={f.position}
                         label={f.label}
+                        control={control}
                     />
                 ))
             }

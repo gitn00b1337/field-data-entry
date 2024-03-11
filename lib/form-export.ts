@@ -6,7 +6,7 @@ import { formatTotalSecondsToTimeString } from "./utils";
 
 const SAF = FileSystem.StorageAccessFramework;
 
-async function trySaveFileUsingCachedPermissions(asyncStoreKey: string, fileContents: string, fileName: string, fileMimeType: string = 'text/csv'): Promise<boolean> {
+async function trySaveFileUsingCachedPermissions(asyncStoreKey: string, fileContents: string, fileName: string, fileMimeType: string = 'text/csv'): Promise<{ success: boolean, path?: string }> {
     let directoryUri = await AsyncStorage.getItem(asyncStoreKey);
 
     if (directoryUri) {
@@ -14,13 +14,18 @@ async function trySaveFileUsingCachedPermissions(asyncStoreKey: string, fileCont
             // there's no way yet in expo to check SAF permission without requesting every time, so try using cached setting if it exists
             const destinationUri = await SAF.createFileAsync(directoryUri, fileName, fileMimeType);
             await SAF.writeAsStringAsync(destinationUri, fileContents, { encoding: 'utf8' });
-            return true;
+
+            return {
+                success: true,
+            };
         }
         catch {   
         }
     }
 
-    return false;
+    return {
+        success: false,
+    };
 }
 
 function getExportFileName(entry: FormEntryV2) {
@@ -53,9 +58,9 @@ export async function exportForm(entry: FormEntryV2) {
 
     const asyncStoreKey = "SAFStore";
     const fileName = getExportFileName(entry);
-    const saved = await trySaveFileUsingCachedPermissions(asyncStoreKey, csv, fileName);
+    const { success } = await trySaveFileUsingCachedPermissions(asyncStoreKey, csv, fileName);
     
-    if (!saved) {
+    if (!success) {
         const downloadDir = SAF.getUriForDirectoryInRoot('Documents');
         const permission = await SAF.requestDirectoryPermissionsAsync(downloadDir);
 
@@ -63,6 +68,7 @@ export async function exportForm(entry: FormEntryV2) {
             return;
         }
 
+        const path = `~/Documents/${fileName}`;
         await SAF.createFileAsync(permission.directoryUri, fileName, 'text/csv');
         await AsyncStorage.setItem(asyncStoreKey, permission.directoryUri);
     }
@@ -81,12 +87,12 @@ function groupScreenRowsByRowKey(screen: FormScreenConfig): GroupedScreenRows {
     return screen.rows
         // group the rows by key
         .reduce((groups, row, index) => {
-            const group: ScreenRowGroup | undefined = groups[row.key];
+            const group: ScreenRowGroup | undefined = groups[row.id];
 
             if (group) {
                 return {
                     ...groups,
-                    [row.key]: {
+                    [row.id]: {
                         index: Math.min(index, group.index),
                         rows: [
                             ...(group?.rows || []),
@@ -103,7 +109,7 @@ function groupScreenRowsByRowKey(screen: FormScreenConfig): GroupedScreenRows {
 
             return {
                 ...groups,
-                [row.key]: newGroup,
+                [row.id]: newGroup,
             };
         }, {});
 }

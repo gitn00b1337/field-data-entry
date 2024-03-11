@@ -1,13 +1,11 @@
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { FormEntryV2 } from "../../lib/config";
+import { FormEntryV2, FormRow } from "../../lib/config";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
-import { Portal, Text } from "react-native-paper";
+import { Text } from "react-native-paper";
 import { ScrollView, View, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { DataCollectionForm } from "../../components/data-collection-form";
-import { HeaderButtons } from "./_header-buttons";
-import { FormikProps } from "formik";
 import { ScreenNavigator } from "./_screen-navigator";
 import { deleteEntry, saveEntry } from "../../lib/database";
 import { exportForm } from "../../lib/form-export";
@@ -30,19 +28,12 @@ export function EntryForm({
     const [entryId, setEntryId] = useState<number>(entry?.id);
     const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
     const [screenIndex, setScreenIndex] = useState(0);
-    const formRef = useRef<FormikProps<FormEntryV2>>(null);
     const router = useRouter();
     const [isExporting, setIsExporting] = useState(false);
     const [showLeaveDialog, setShowLeaveDialog] = useState(false);
     const [showDeleteFormDialog, setShowDeleteFormDialog] = useState(false);
 
     console.log('EntryScreen!')
-
-    function handleSaveButtonPress() {
-        if (typeof formRef?.current?.handleSubmit === 'function') {
-            formRef.current.handleSubmit();
-        }
-    }
 
     async function handleSubmit(values: FormEntryV2) {
         console.log('submitting...')
@@ -88,6 +79,7 @@ export function EntryForm({
 
         try {
             await exportForm(values);
+            setSnackbarOptions({ type: 'SUCCESS', message: `Form exported!` });
         }
         catch (e) {
             setSnackbarOptions({ type: 'ERROR', message: 'An error occured exporting, please try again.' });
@@ -153,8 +145,6 @@ export function EntryForm({
                                     isDesignMode={false}
                                     initialValues={entry}
                                     onSubmit={handleSubmit}
-                                    form={entry}
-                                    formRef={formRef}
                                     onDiscardPress={() => setShowLeaveDialog(true)}
                                     onDeleteFormPress={() => setShowDeleteFormDialog(true)}
                                     onExportForm={handleExportForm}

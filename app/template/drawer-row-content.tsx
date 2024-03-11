@@ -1,11 +1,12 @@
 import { StyleSheet, View, } from "react-native";
-import { FormFieldConfig, FormRow, FormScreenConfig, } from "../../lib/config";
-import { Button, Text, MD3Theme, List, IconButton, } from 'react-native-paper';
+import { FormEntryV2, FormFieldConfig, FormRow, FormScreenConfig, } from "../../lib/config";
+import { Button, Text, MD3Theme, List, IconButton, useTheme, } from 'react-native-paper';
 import React from 'react';
-import { FieldArray, FieldArrayRenderProps } from "formik";
 import { NestableDraggableFlatList, NestableScrollContainer, RenderItemParams, } from "react-native-draggable-flatlist";
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
 import { useGlobalState } from "../global-state";
+import { Control, UseFormSetValue, useWatch } from "react-hook-form";
+import { CheckboxField } from "../../components/form-checkbox";
 
 export type DrawerRowContentProps = {
     theme: MD3Theme;
@@ -13,11 +14,16 @@ export type DrawerRowContentProps = {
     screenIndex: number;
     selectedRowIndex: number;
     screen: FormScreenConfig;
-    onAddFieldPress: (helper: FieldArrayRenderProps) => void;
+    
+    control: Control<FormEntryV2, any>;
+    setValue: UseFormSetValue<FormEntryV2>;
+
+    onAddField: () => void;
     onEditFieldPress: (index: number) => void;
+    onMoveField: (from: number, to: number) => void;
     onChangeRowPress: (index: number) => void;
-    onDeleteRowPress: (arrayHelper: FieldArrayRenderProps) => void;
-    onChangeFieldOrder: (from: number, to: number, arrayHelper: FieldArrayRenderProps) => void;
+    onAddRow: () => void;
+    onDeleteRow: (index: number) => void;
 }
 
 type RenderItemProps = RenderItemParams<FormFieldConfig> & { 
@@ -53,18 +59,24 @@ function renderItem({
 export function DrawerRowContent({
     theme,
     selectedRowIndex,
-    fieldName,
-    onAddFieldPress,
     screenIndex,
-    onEditFieldPress,
     screen,
-    onDeleteRowPress,
+    control,
+    onMoveField,
+    onEditFieldPress,
+    onAddField,
     onChangeRowPress,
-    onChangeFieldOrder,
+    onAddRow,
+    onDeleteRow,
 }: DrawerRowContentProps) {
     const styles = makeStyles(theme);
-    const selectedRow = screen.rows[selectedRowIndex];
-    const [state, dispatch] = useGlobalState();
+    const selectedRow = screen?.rows[selectedRowIndex];
+    const [_, dispatch] = useGlobalState();
+
+    const rows = useWatch({
+        control,
+        name: `config.screens.${screenIndex}.rows`,
+    });
 
     if (!selectedRow) {
         return (
@@ -91,105 +103,165 @@ export function DrawerRowContent({
             <View style={styles.titleContainer}>
                 <Text style={styles.title}>{`Screen ${screenIndex + 1}`}</Text>
             </View>
-            <FieldArray
-                name={`config.screens[${screenIndex}].rows`}
-                render={rowArrayHelper => (
-                    <>
-                        <View style={styles.sectionTitleContainer}>
-                            <Text style={styles.sectionTitle}>
-                                Rows
-                            </Text>
-                        </View>
-                        {
-                            screen.rows.map((row, index) => {
-                                const isExpanded = index === selectedRowIndex;
-                                return (
-                                    <View
-                                        key={`row-${index}`}
-                                        style={[
-                                            styles.accordionContainer,
-                                            { flexDirection: 'row', },
-                                            // index === 0 && styles.firstAccordionContainer
-                                        ]}
-                                    >
-                                        <View style={{ flexGrow: 1, }}>
-                                            <List.Accordion
-                                                title={`Row ${index + 1}`}
-                                                expanded={isExpanded}
-                                                onPress={() => onChangeRowPress(index)}
-                                                style={[styles.accordion]}
-                                                titleStyle={[styles.accordionTitle, ]}
-                                                descriptionStyle={styles.accordionDescription}
-                                                right={props => (
-                                                    <List.Icon
-                                                        icon='chevron-down'
-                                                        style={{ display: 'none' }}
-                                                    />
-                                                )}
-                                                >                                                
-                                                {
-                                                    index === selectedRowIndex && (
-                                                        <FieldArray
-                                                            name={`config.screens[${screenIndex}].rows[${selectedRowIndex}].fields`}
-                                                            render={arrayHelper => (
-                                                                <NestableScrollContainer contentContainerStyle={styles.navContainer}>
-                                                                    <NestableDraggableFlatList
-                                                                        style={{ flex: undefined, flexGrow: 0, }}
-                                                                        contentContainerStyle={{ flex: undefined, flexGrow: 0, }}
-                                                                        containerStyle={{ flexGrow: 0, flex: undefined, width: '100%' }}
-                                                                        data={selectedRow.fields}
-                                                                        onDragEnd={({ from, to }) => onChangeFieldOrder(from, to, arrayHelper)}
-                                                                        keyExtractor={(_, fieldIndex) => `row${selectedRowIndex}-fieldconfig${fieldIndex}`}
-                                                                        renderItem={props => renderItem({ 
-                                                                            ...props, 
-                                                                            onEditFieldPress,
-                                                                            theme,
-                                                                        })}
-                                                                    />
-                                                                    <View style={[styles.row, { flexDirection: 'column'}]}>
-                                                                        <View style={styles.addFieldDivider} />
-                                                                        <View style={styles.addFieldContainer}>
-                                                                            <IconButton
-                                                                                icon='plus-circle-outline'
-                                                                                size={16}
-                                                                            />
-                                                                            <Button
-                                                                                style={styles.addFieldBtn}
-                                                                                contentStyle={styles.addFieldBtnContent}
-                                                                                labelStyle={styles.addFieldBtnText}
-                                                                                onPress={() => onAddFieldPress(arrayHelper)}
-                                                                            >
-                                                                                Add Field
-                                                                            </Button>
-                                                                        </View>
-                                                                    </View>
-                                                                </NestableScrollContainer>
-                                                            )}
-                                                        />
-                                                    )
-                                                }
-                                            </List.Accordion>
-                                        </View>
-                                        <View>
-                                            <DotsPopupMenu
-                                                size={20}
-                                                actions={[
-                                                    { key: 'delete', label: 'Delete', onPress: () => onDeleteRowPress(rowArrayHelper) }
-                                                ]}
-                                            />
-                                        </View>
+            <View style={styles.sectionTitleContainer}>
+                <Text style={styles.sectionTitle}>
+                    Rows
+                </Text>
+            </View>
+            {
+                rows.map((row, index) => (
+                    <RowConfig
+                        key={row.id}
+                        row={row}
+                        index={index}
+                        control={control}
+                        screen={screen}
+                        screenIndex={screenIndex}
+                        onChangeRowPress={onChangeRowPress}
+                        onMoveField={onMoveField}
+                        onEditFieldPress={onEditFieldPress}
+                        selectedRowIndex={selectedRowIndex}
+                        onAddField={onAddField}
+                        onDeleteRow={onDeleteRow}
+                    />
+                ))
+            }
+            <View style={[styles.row]}>
+                <View style={{ flexGrow: 1, }}>
+                    <Button onPress={onAddRow}>Add Row</Button>
+                </View>
+            </View>
+        </View>
+    )
+}
+
+type RowConfigProps = {
+    row: FormRow;
+    index: number;
+    screenIndex: number;
+    selectedRowIndex: number;
+    screen: FormScreenConfig;
+    
+    control: Control<FormEntryV2, any>;
+    onAddField: () => void;
+    onEditFieldPress: (index: number) => void;
+    onMoveField: (from: number, to: number) => void;
+    onChangeRowPress: (index: number) => void;
+    onDeleteRow: (index: number) => void;
+}
+
+function RowConfig({
+    index,
+    selectedRowIndex,
+    control,
+    screenIndex,
+    row,
+    screen,
+    onChangeRowPress,
+    onMoveField,
+    onEditFieldPress,
+    onAddField,
+    onDeleteRow,
+}: RowConfigProps) {
+    const theme = useTheme();
+    const styles = makeStyles(theme);
+    const isExpanded = index === selectedRowIndex;
+    const selectedRow = screen?.rows[selectedRowIndex];
+    const hasCopyBtn = useWatch({
+        control,
+        name: `config.screens.${screenIndex}.rows.${index}.hasCopyNewBtn`,
+    })
+
+    return (
+        <View
+            key={row.id}
+            style={[
+                styles.accordionContainer,
+                { flexDirection: 'row', },
+            ]}
+        >
+            <View style={{ flexGrow: 1, }}>
+                <List.Accordion
+                    title={`Row ${index + 1}`}
+                    expanded={isExpanded}
+                    onPress={() => onChangeRowPress(index)}
+                    style={[styles.accordion]}
+                    titleStyle={[styles.accordionTitle, ]}
+                    descriptionStyle={styles.accordionDescription}
+                    right={props => (
+                        <List.Icon
+                            icon='chevron-down'
+                            style={{ display: 'none' }}
+                        />
+                    )}
+                    >                                                
+                    {
+                        index === selectedRowIndex && (
+                            <NestableScrollContainer contentContainerStyle={styles.navContainer}>
+                                <NestableDraggableFlatList
+                                    style={{ flex: undefined, flexGrow: 0, }}
+                                    contentContainerStyle={{ flex: undefined, flexGrow: 0, }}
+                                    containerStyle={{ flexGrow: 0, flex: undefined, width: '100%' }}
+                                    data={selectedRow.fields}
+                                    onDragEnd={({ from, to }) => onMoveField(from, to)}
+                                    keyExtractor={(_, fieldIndex) => `row${selectedRowIndex}-fieldconfig${fieldIndex}`}
+                                    renderItem={props => renderItem({ 
+                                        ...props, 
+                                        onEditFieldPress,
+                                        theme,
+                                    })}
+                                />
+                                <View style={[styles.row, { flexDirection: 'column'}]}>
+                                    <View style={styles.addFieldDivider} />
+                                    <View style={styles.addFieldContainer}>
+                                        <IconButton
+                                            icon='plus-circle-outline'
+                                            size={16}
+                                        />
+                                        <Button
+                                            style={styles.addFieldBtn}
+                                            contentStyle={styles.addFieldBtnContent}
+                                            labelStyle={styles.addFieldBtnText}
+                                            onPress={onAddField}
+                                        >
+                                            Add Field
+                                        </Button>
                                     </View>
-                                )
-                            })
-                        }
-                    </>
-                )}
-            />
+                                </View>
+                                <View style={[styles.row]}>
+                                    <CheckboxField
+                                        control={control}
+                                        name={`config.screens.${screenIndex}.rows.${index}.hasCopyNewBtn`}
+                                        isDisabled={false}
+                                        label="Has Copy New Button"
+                                        labelStyle={styles.copyNewLabel}
+                                        containerStyle={{ borderBottomWidth: 0, }}
+                                    />
+                                </View>
+                            </NestableScrollContainer>
+                        )
+                    }
+                </List.Accordion>
+            </View>
+            <View>
+                <DotsPopupMenu
+                    size={20}
+                    actions={[
+                        { key: 'delete', label: 'Delete', onPress: () => onDeleteRow(index) }
+                    ]}
+                />
+            </View>
         </View>
     )
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    copyNewLabel: {
+        color: '#000',
+        fontWeight: 'normal',
+        fontFamily: theme.fonts.default.fontFamily,
+        fontSize: 14,
+    },
     title:{
         fontSize: 20,
         fontWeight: '700',

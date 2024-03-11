@@ -1,16 +1,15 @@
 import { View, StyleSheet, } from "react-native";
-import { MD3Theme, Text, } from "react-native-paper";
+import { Text, } from "react-native-paper";
 import { FormInput } from "../../components/form-input";
-import { FormConfig } from "../../lib/config";
+import { Control } from "react-hook-form";
+import { FormEntryV2 } from "../../lib/config";
 
 type DrawerSettingsContentProps = {
-    theme: MD3Theme;
-    form: FormConfig;
+    control: Control<FormEntryV2, any>;
 }
 
 export function DrawerSettingsContent({
-    theme,
-    form,
+    control,
 }: DrawerSettingsContentProps) {
 
     return (
@@ -21,18 +20,19 @@ export function DrawerSettingsContent({
             <View style={{ width: '100%' }}>
                 <View style={styles.row}>
                     <FormInput
-                        fieldName='name'
+                        fieldName='config.name'
                         label='Form Name'
+                        control={control}
                     />
                 </View>
             </View>
             <View style={{ width: '100%' }}>
                 <View style={styles.row}>
                     <FormInput
-                        fieldName='description'
+                        fieldName='config.description'
                         label='Form Description'
-                        value={form.description}
                         multiline
+                        control={control}
                     />
                 </View>
             </View>

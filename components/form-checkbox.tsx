@@ -1,24 +1,43 @@
-import { useField } from "formik";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, ViewStyle } from "react-native";
 import { Checkbox, CheckboxItemProps, MD3Theme, useTheme } from "react-native-paper";
-import { FieldComponentProps } from "./form-field";
 import { useEffect, useRef } from "react";
+import { Control, Path, useController } from "react-hook-form";
+import { FormEntryV2 } from "../lib/config";
+
+export type FormCheckboxProps = {
+    name: string;
+    onChange?: (val: boolean) => void;
+    isDisabled: boolean;
+    control: Control<FormEntryV2, any>;
+    onPress?: () => void;
+    label: string;
+    containerStyle?: ViewStyle
+} & Omit<CheckboxItemProps, "status" | "label">;
 
 export function CheckboxField({
-    config,
+    name,
     onChange,
     onPress,
     isDisabled,
+    control,
+    label,
+    containerStyle,
     ...checkboxProps
-}: FieldComponentProps & Omit<CheckboxItemProps, "status" | "label">) {
+}: FormCheckboxProps) {
     const theme = useTheme();
-    const [field, meta, helpers] = useField(config.name);
     const styles = makeStyles(theme);
     const valueChanged = useRef(false);
+    const {
+        field,
+        fieldState,
+    } = useController({
+        name: name as Path<FormEntryV2>,
+        control,
+    });
 
     function handlePress() {
         const val = !field.value; 
-        helpers.setValue(val);
+        field.onChange(val);
 
         if (typeof onPress === 'function') {
             onPress();
@@ -28,23 +47,23 @@ export function CheckboxField({
     useEffect(() => {
         if (valueChanged.current 
             && typeof onChange === 'function'
-            && meta.touched
+            && fieldState.isTouched
         ) {
-            onChange(field.value);
+            onChange(field.value as boolean);
         } 
 
         valueChanged.current = true;
     }, [ field.value ]);
     
     return (
-       <View style={styles.container}>
+       <View style={[styles.container, containerStyle]}>
             <Checkbox.Item
                 {...checkboxProps}
-                label={config.label || 'New Field'}
+                label={label || 'New Field'}
                 status={field.value == true ? 'checked' : 'unchecked'}
                 onPress={handlePress}        
                 disabled={isDisabled}    
-            />
+            />            
        </View>
     )
 }

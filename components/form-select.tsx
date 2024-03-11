@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useField } from 'formik';
 import { View, StyleSheet, Text } from "react-native";
-import { FormFieldProps } from "./form-field";
 import { Dropdown, } from 'react-native-element-dropdown';
 import { MD3Theme, useTheme } from "react-native-paper";
 import { deferredEffect } from "../lib/effect";
+import { FormEntryV2 } from "../lib/config";
+import { Control, Path, useController } from "react-hook-form";
 
 export type FormSelectProps = {
     fieldName: string;
@@ -16,6 +16,8 @@ export type FormSelectProps = {
     onFocus?: () => void;
     onChange?: (val: string) => void;
     isDisabled?: boolean;
+    control: Control<FormEntryV2, any>;
+    defaultValue?: string;
 }
 
 export function FormSelectField({
@@ -24,12 +26,20 @@ export function FormSelectField({
     options,
     onFocus,
     onChange,
+    control,
 }: FormSelectProps) {
-    const [field, meta, helpers] = useField(fieldName);
     const [isFocus, setIsFocus] = useState(false);
 
     const theme = useTheme();
     const styles = makeStyles(theme);
+
+    const {
+      field,
+      fieldState,
+  } = useController({
+      name: fieldName as Path<FormEntryV2>,
+      control,
+  });
 
     useEffect(() => {
         if (isFocus && onFocus) {
@@ -39,7 +49,7 @@ export function FormSelectField({
 
     deferredEffect(() => {
       if (typeof onChange === 'function') {
-        onChange(field.value);
+        onChange(field.value as string);
       }   
     }, [ field.value ]);
 
@@ -62,11 +72,11 @@ export function FormSelectField({
                 placeholder={'Select item'}
                 searchPlaceholder="Search..."
                 itemContainerStyle={{ marginLeft: 0, paddingLeft: 0,  left: 0}}
-                value={field.value}
+                value={field.value as string}
                 onFocus={() => setIsFocus(true)}
                 onBlur={() => setIsFocus(false)}
                 onChange={item => {
-                    helpers.setValue(item.value);
+                    field.onChange(item.value);
                     setIsFocus(false);     
                 }}
             />
