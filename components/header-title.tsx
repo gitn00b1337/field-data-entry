@@ -1,43 +1,25 @@
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { Button, useTheme } from "react-native-paper";
 import { Image } from 'expo-image';
-import { router, useRouter } from 'expo-router';
-import { useGlobalState } from "../app/global-state";
+import { useRouter } from 'expo-router';
 import { useRoute } from '@react-navigation/native';
 
 const Logo = require('../assets/logo.png');
 
 export function HeaderTitle() {
-    const [state, dispatch] = useGlobalState();
     const route = useRoute();
-    const theme = useTheme();
-
-    const showBurger = route.name === 'template/index';
+    const router = useRouter();
 
     function handleLogoPress() {
-        router.navigate('/');
-    }
-
-    function handleBurgerPress() {
-        dispatch('SET_DRAWER_VISIBLE', !state.drawerVisible);
+        if (router.canGoBack()) {
+            router.back();
+        }
+        else {
+            router.navigate('/');
+        }        
     }
 
     return (
         <View style={styles.container}>
-            {
-                showBurger && (
-                    <Button 
-                        icon={'menu'}
-                        onPress={handleBurgerPress} 
-                        labelStyle={styles.hamburgerLabel}
-                        contentStyle={styles.hamburgerContent}
-                        style={styles.hamburger}
-                        textColor={state.drawerVisible ?  theme.colors.primary : theme.colors.onPrimary }
-                    >
-                        &nbsp;
-                    </Button>
-                )
-            }
             <TouchableOpacity onPress={handleLogoPress}>
                 <Image
                     style={styles.logo}

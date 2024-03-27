@@ -9,6 +9,7 @@ import { NumericField } from "./form-numeric-field";
 import { WholeNumberField } from "./form-wholenumber-field";
 import { FormTimerButton } from "./form-timer-button";
 import { Control, Controller } from "react-hook-form";
+import { FormTallyField } from "./form-tally-field";
 
 export type FormFieldProps = {
     config: FormFieldConfig;
@@ -107,8 +108,10 @@ function FieldComponent(props : FieldComponentProps) {
                 control={props.control}
                 onPress={props.onPress}
                 isDisabled={props.isDisabled}
+                name={props.config.name}
             />
         )
+        case 'TALLY': return <FormTallyField {...props} />;
         default: 
             console.error(`Field type ${props.config.type} not supported`);
             return null;

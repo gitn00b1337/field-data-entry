@@ -8,6 +8,7 @@ import { DotsPopupMenu } from "../../components/dots-popup-menu";
 import { useGlobalState } from "../global-state";
 import { Control, UseFormSetValue, useFieldArray, useWatch } from "react-hook-form";
 import { CheckboxField } from "../../components/form-checkbox";
+import { AddButton } from "../../components/add-button";
 
 type DrawerFieldContentProps = {
     theme: MD3Theme;
@@ -32,6 +33,7 @@ const typeOptions: DropdownOptions = [
     { label: 'Dropdown', value: 'SELECT', },
     { label: 'Checkbox', value: 'CHECKBOX', },
     { label: 'Timer', value: 'TIMER' },
+    { label: 'Tally', value: 'TALLY' },
 ];
 
 export function DrawerFieldContent({
@@ -44,7 +46,6 @@ export function DrawerFieldContent({
     setValue,
 }: DrawerFieldContentProps) {
     const styles = makeStyles(theme);
-    const [disableAddOption, setDisableAddOption] = useState(false);
     const [state, dispatch] = useGlobalState();
     const name = `config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}`;
     const fieldConfig = useWatch({
@@ -55,6 +56,7 @@ export function DrawerFieldContent({
         control,
         name: `config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}.defaultValue`
     });    
+    
     const {
         fields: options,
         remove: removeOption,
@@ -69,17 +71,6 @@ export function DrawerFieldContent({
         control,
         name: `config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}.options`
     })
-
-    console.log(optionsArr)
-
-    useEffect(() => {
-        if (!fieldConfig?.options) {
-            return;
-        }
-
-        const hasEmptyValue = fieldConfig.options.findIndex(o => !o.value) > -1;
-        setDisableAddOption(hasEmptyValue);        
-    }, [ fieldConfig?.options ])
 
     if (screenIndex === -1 || rowIndex === -1 || fieldIndex === -1 || !fieldConfig) {
         return (
@@ -137,9 +128,9 @@ export function DrawerFieldContent({
             <View style={styles.titleContainer}>
                 <Text style={styles.title}>Edit Field</Text>
                 <DotsPopupMenu
-                        actions={[
+                    actions={[
                         { key: 'delete', label: 'Delete', onPress: () => onDeleteField(fieldIndex) }
-                        ]}
+                    ]}
                 />
             </View>
             {
@@ -161,18 +152,20 @@ export function DrawerFieldContent({
                                     control={control}
                                 />
                             </View>
+                            <View style={{ paddingLeft: 12, }}>
                             {
                                 fieldConfig.type === 'SELECT' && (
                                     <CheckboxField
                                         control={control}
                                         name={`${name}.multiSelect`}
                                         isDisabled={false}
-                                        label="Multiple Choices"
+                                        label="Multiple Choice"
                                         labelStyle={styles.isMultiSelectLabel}
                                         containerStyle={{ borderBottomWidth: 0, }}
                                     />
                                 )
                             }
+                            </View>
                             {
                                 fieldConfig.type === 'SELECT' && (
                                     <View style={styles.options}>
@@ -221,9 +214,11 @@ export function DrawerFieldContent({
                                             })
                                         }
                                         <View style={styles.addOptionContainer}>
-                                            <Button disabled={disableAddOption} onPress={handleAddOption}>
-                                                Add Option
-                                            </Button>
+                                            <AddButton 
+                                                onPress={handleAddOption} 
+                                                label="Add Option"
+                                                style={{ width: 150, maxWidth: 150 }}
+                                            />
                                         </View>
                                     </View>
                                 )
@@ -306,7 +301,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignItems: 'stretch',
         paddingHorizontal: 12,
         borderWidth: 1,
-        borderColor: theme.colors.outlineVariant,
+        borderColor: theme.colors.outline,
         borderRadius: 0,
         paddingVertical: 24,
         margin: 12,
@@ -387,7 +382,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         backgroundColor: 'white',
         borderRadius: 0,
         borderWidth: 1,
-        borderColor: theme.colors.outlineVariant,
+        borderColor: theme.colors.outline,
         shadowRadius: 0,
         opacity: 1,
     }

@@ -210,7 +210,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     },
     addFieldDivider: {
         marginHorizontal: 'auto',
-        backgroundColor: theme.colors.outlineVariant,
+        backgroundColor: theme.colors.outline,
         width: '90%',
         alignSelf: 'center',
         marginTop: 12,

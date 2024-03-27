@@ -6,6 +6,7 @@ import { FormEntryRow } from "./form-row";
 import { useRouter } from "expo-router";
 import { UseFormReturn, useFieldArray, useWatch } from "react-hook-form";
 import { generateUUID } from "../lib/utils";
+import { AddButton } from "./add-button";
 
 export type Direction = 'UP' | 'DOWN';
 
@@ -17,7 +18,7 @@ export type FormScreenProps = {
     onFieldPress?: (rowIndex: number, fieldIndex: number) => void;
     onSubmit: () => Promise<void>;
     onChangeScreen: (pageNumber: number) => void;
-    form: UseFormReturn<FormEntryV2, any>;  
+    form: UseFormReturn<FormEntryV2, any>;      
 }
 
 export function FormScreen({
@@ -38,20 +39,30 @@ export function FormScreen({
     // template has its own. cant have two with the same name
     // for reliable output
     const {
-        fields: rows,
+        fields: rowsArr,
         insert: insertRow,
     } = useFieldArray({
         control: form.control,
         name: `config.screens.${screenIndex}.rows`,
     });
 
-    const config = useWatch({
+    console.log(`FA ROWS: ${rowsArr.length}`)
+
+    const screens = useWatch({
         control: form.control,
-        name: 'config'
+        name: 'config.screens'
     });
+
+    const rows = useWatch({
+        control: form.control,
+        name: `config.screens.${screenIndex}.rows`
+    });
+
+    const screen = form.watch(`config.screens.${screenIndex}`);
+
+    console.log(`WATCH ROWS: ${rows.length}`);
     
-    const screen = config.screens[screenIndex];
-    const isLastScreen = config.screens.length === (screenIndex + 1);
+    const isLastScreen = screens.length === (screenIndex + 1);
 
     if (!screen) {
         return null;
@@ -78,7 +89,8 @@ export function FormScreen({
     function copyRowConfig(row: FormRow) {
         return {
             ...row,
-           id: generateUUID(),
+            id: generateUUID(),
+            parentId: row.parentId || row.id,
             fields: row.fields.map(f => {
                 return {
                     ...f,
@@ -139,7 +151,7 @@ export function FormScreen({
             <View style={styles.container}>            
                 <View style={{ marginBottom: 84, flexGrow: 1, }}>
                 {
-                    screen.rows.map((row, rowIndex) => {
+                    rows.map((row, rowIndex) => {
                         const isFocused = rowIndex === selectedRowIndex;
                         const nextRow = screen.rows[rowIndex + 1];
                         const prevRowSameIdOrParentId = nextRow?.parentId === row.id 
@@ -151,7 +163,7 @@ export function FormScreen({
                         return (
                             <FormEntryRow
                                 key={`screen${screenIndex}-row${rowIndex}`}
-                                row={row}
+                                form={form}
                                 isFocused={isFocused}
                                 onPress={() => handleRowPress(rowIndex)}
                                 index={rowIndex}
@@ -160,14 +172,16 @@ export function FormScreen({
                                 onFieldChange={(field, _) => handleFieldChange(field, rowIndex)}
                                 control={form.control}
                                 onCopyRow={(rowIndex) => handleCopyRow(rowIndex)}
+                                screenIndex={screenIndex}
                                 CopyButton={
                                     <>
                                      {
                                         showCopyBtn && (
                                             <View style={styles.rowButtonsContainer}>
-                                                <Button onPress={() => handleCopyRow(rowIndex)}>
-                                                    Add New
-                                                </Button>
+                                                <AddButton 
+                                                    onPress={() => handleCopyRow(rowIndex)}
+                                                    label='Add New'    
+                                                />
                                             </View>
                                         )
                                     }
@@ -176,36 +190,6 @@ export function FormScreen({
                             />
                         )
                     })
-                }
-                {
-                    !isDesignMode && (
-                        <View style={styles.pageBtnContainer}>
-                            {
-                                screenIndex > 0 && (
-                                    <Button 
-                                        style={styles.backBtn}
-                                        mode="contained-tonal"
-                                        buttonColor={theme.colors.secondary}
-                                        textColor={'#fff'}
-                                        labelStyle={styles.nextBtnLabel}
-                                        onPress={() => onChangeScreen(screenIndex -1)}
-                                    >
-                                        Back
-                                    </Button>
-                                )
-                            }
-                            <Button
-                                style={styles.nextBtn}
-                                mode="contained-tonal"
-                                buttonColor={theme.colors.secondary}
-                                textColor={'#fff'}
-                                labelStyle={styles.nextBtnLabel}
-                                onPress={handleNextPress}
-                            >
-                                { isLastScreen ? 'Finish' : 'Next' }
-                            </Button>
-                        </View>
-                    )
                 }
                 </View>    
             </View>            
@@ -217,6 +201,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     rowButtonsContainer: {
         justifyContent: 'center',
         alignItems: 'flex-end',
+        paddingRight: 12
     },
     pageBtnContainer: {
         justifyContent: 'space-between',
@@ -239,6 +224,8 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     },
     container: {
         flexGrow: 1,
+        maxWidth: 1200,
+        paddingHorizontal: 24,
     },
     sectionBtnContainer: {
         alignItems: 'flex-end',

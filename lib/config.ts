@@ -6,7 +6,7 @@ export type FormActionType = 'COPY_ROWS';
 export type FormActionCondition = 'HAS_VALUE';
 export type FormFieldOnChangeAction = 'NONE' | 'CREATE_BLANK';
 
-export type FormFieldType = 'TEXT' | 'WHOLE_NUMBER' | 'SELECT' | 'NUMERIC' | 'CHECKBOX' | 'TIMER';
+export type FormFieldType = 'TEXT' | 'WHOLE_NUMBER' | 'SELECT' | 'NUMERIC' | 'CHECKBOX' | 'TIMER' | 'TALLY';
 export type GlobalFieldType = 'TIMER';
 
 export type FormConfig = {
@@ -360,7 +360,6 @@ function createEntryValues(config: FormConfig) {
         }
     }
 
-    console.log(values);
     return values;
 } 
 

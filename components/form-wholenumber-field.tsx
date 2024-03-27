@@ -5,7 +5,10 @@ export function WholeNumberField(props: FieldComponentProps) {
     return (
         <TextField
             {...props}
-            inputProps={{ keyboardType: 'numeric' }}
+            inputProps={{ 
+                keyboardType: 'numeric',
+                
+            }}
         />
     )
 }

@@ -57,13 +57,26 @@ export function CheckboxField({
     
     return (
        <View style={[styles.container, containerStyle]}>
+        <View style={{ flexGrow: 1, width: '100%', }} />
+        <View style={{ justifyContent: 'flex-end', }}>
             <Checkbox.Item
                 {...checkboxProps}
                 label={label || 'New Field'}
                 status={field.value == true ? 'checked' : 'unchecked'}
                 onPress={handlePress}        
-                disabled={isDisabled}    
-            />            
+                disabled={isDisabled}   
+                style={{
+                    paddingBottom: 0,
+                    marginBottom: 0,
+                }} 
+                labelStyle={{
+                    paddingBottom: 4,
+                    marginBottom: 0,
+                    fontSize: 16,
+                }}
+                
+            />           
+        </View> 
        </View>
     )
 }
@@ -73,8 +86,9 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: theme.roundness, 
         borderBottomWidth: 1, 
-        borderBottomColor: theme.colors.outlineVariant, 
+        borderBottomColor: theme.colors.outline, 
         flexGrow: 1, 
-        justifyContent: 'center'
+        justifyContent: 'center',
+        marginBottom: 10,
     }
 });

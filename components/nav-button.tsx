@@ -1,4 +1,4 @@
-import { Button } from 'react-native-paper';
+import { Button, MD3Theme } from 'react-native-paper';
 import { useTheme } from 'react-native-paper';
 import { StyleSheet, View, } from 'react-native';
 
@@ -14,6 +14,7 @@ export function NavButton({
     variant = 'PRIMARY',
 }: NavButtonProps) {
     const theme = useTheme();
+    const styles = makeStyles(theme);
     const isPrimary = variant === 'PRIMARY';
 
     return (
@@ -32,13 +33,13 @@ export function NavButton({
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     label: {
         textTransform: 'uppercase',
         fontWeight: '900',
     },
     button: {
-        borderRadius: 5,
+        borderRadius: theme.roundness,
     },
     container: {
         justifyContent: 'center',

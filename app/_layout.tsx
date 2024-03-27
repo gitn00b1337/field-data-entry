@@ -1,7 +1,6 @@
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Button, ScrollView, StatusBar } from 'react-native';
-import * as ScreenOrientation from "expo-screen-orientation";
-import { PaperProvider } from 'react-native-paper';
+import { IconButton, PaperProvider } from 'react-native-paper';
 import { getTheme } from '../theme';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -21,7 +20,6 @@ import { Stack, router, useRouter } from 'expo-router';
 import { HeaderTitle } from '../components/header-title';
 import { configureGlobalState } from './global-state';
 
-ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
 SplashScreen.preventAutoHideAsync();
 
 configureGlobalState();

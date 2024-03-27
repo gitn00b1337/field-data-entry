@@ -4,6 +4,7 @@ import { Text,  MD3Theme, Button, } from 'react-native-paper';
 import React from 'react';
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
 import { Control, useFieldArray, useWatch } from "react-hook-form";
+import { AddButton } from "../../components/add-button";
 
 export type DrawerScreenContentProps = {
     theme: MD3Theme;
@@ -71,8 +72,12 @@ export function DrawerScreenContent({
                     ))
                 }
                 <View style={styles.row}>
-                    <View style={{ flexGrow: 1, }}>
-                        <Button onPress={onAddScreen}>Add Screen</Button>
+                    <View style={{ flexGrow: 1, alignItems: 'center', paddingVertical: 12, }}>
+                        <AddButton 
+                            onPress={onAddScreen} 
+                            label="Add Screen"
+                            style={{ width: 135, maxWidth: 150 }}
+                        />
                     </View>
                 </View>
             </View>

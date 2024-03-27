@@ -4,11 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, MD3Theme, Menu, Text, useTheme } from "react-native-paper";
 import moment from "moment";
 import { formatTotalSecondsToTimeString } from "../lib/utils";
-import { Control, Path, useController } from "react-hook-form";
+import { Control, Path, useController, useWatch } from "react-hook-form";
 
 export type TimerPosition = GlobalFieldPosition | 'IN_FORM';
 
 export type FormTimerButtonProps = {
+    name: string;
     entryKey: string;
     position: TimerPosition;
     label: string;
@@ -18,6 +19,7 @@ export type FormTimerButtonProps = {
 }
 
 export function FormTimerButton({
+    name,
     entryKey,
     position,
     label,
@@ -25,6 +27,11 @@ export function FormTimerButton({
     onPress,
     isDisabled,
 }: FormTimerButtonProps) {
+    const field = useWatch({ 
+        control,
+        name: `${name}.label` as Path<FormEntryV2>,
+    })
+
     return (
         <TimerButton
             position={position}
@@ -55,7 +62,7 @@ export function TimerButton({
     control,
     entryKey,
     onPress,
-    isDisabled,
+    isDisabled,    
 }: TimerButtonProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
@@ -113,7 +120,7 @@ export function TimerButton({
             meta: {
                 state,
                 history: [
-                    ...(field?.value.meta?.history || []),
+                    ...(field?.value?.meta?.history || []),
                     { state, timestamp: moment().utc().toISOString() },
                 ],
                 lastValue: currentTime,
@@ -153,9 +160,9 @@ export function TimerButton({
 
             case 'FLOATING_BUTTON_BR':
                 return {
-                    extraLabelStyles: {},
-                    extraContainerStyles: {},
-                    extraTimeStyles: {},
+                    extraLabelStyles: styles.floatingLabel,
+                    extraContainerStyles: styles.floatingContainer,
+                    extraTimeStyles: styles.floatingTime,
                     iconColor: theme.colors.onPrimaryContainer,
                 };
 
@@ -190,15 +197,15 @@ export function TimerButton({
     }
 
     const { extraLabelStyles, extraContainerStyles, extraTimeStyles, iconColor } = getExtraStyles(); 
+    const isGlobal = position === 'FLOATING_BUTTON_BR' || position === 'HEADER';
 
     return (
-        <>
         <TouchableOpacity 
             onPress={handlePress} 
             onLongPress={handleLongPress}
             style={[styles.container, extraContainerStyles ]}
         >
-            <View style={{ flexGrow: 1, }}>
+            <View style={[{ flexGrow: 1,  }]}>
                 <Text style={[styles.label, extraLabelStyles]} numberOfLines={1} ellipsizeMode='tail'>{ label || 'Timer' }</Text>
                 <Text style={[styles.time, extraTimeStyles]} numberOfLines={1} ellipsizeMode='tail'>{timeStr}</Text>
             </View>
@@ -208,17 +215,16 @@ export function TimerButton({
                     size={24}
                     color={iconColor}
                 />
-            </View>            
+            </View>     
+            <Menu
+                visible={showResetMenu}
+                onDismiss={() => setShowResetMenu(false)}
+                anchor={menuAnchor}
+                contentStyle={styles.resetMenuContent}
+            >
+                <Menu.Item onPress={handleReset} title='Reset' />
+            </Menu>       
         </TouchableOpacity>
-        <Menu
-            visible={showResetMenu}
-            onDismiss={() => setShowResetMenu(false)}
-            anchor={menuAnchor}
-            contentStyle={styles.resetMenuContent}
-        >
-            <Menu.Item onPress={handleReset} title='Reset' />
-        </Menu>
-        </>
     )
 }
 
@@ -236,7 +242,8 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.outlineVariant,
+        borderBottomColor: theme.colors.outline,
+        marginBottom: 10,
     },
     formLabel: {
         color: theme.colors.onPrimaryContainer,
@@ -265,21 +272,42 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     },
     headerContainer: {
         padding: 6,
-        borderRadius: 5,
+        borderRadius: theme.roundness,
         backgroundColor: theme.colors.background,
     },
     headerLabel: {
         marginBottom: 0,
         paddingBottom: 2,
         lineHeight: 12,
-        color: theme.colors.onSecondaryContainer,
+        color: '#222222',
     },
     headerTime: {
         fontSize: 12,
         fontWeight: 'bold',
         letterSpacing: 0.5,
         lineHeight: 12,
-        color: theme.colors.onSecondaryContainer,
+        color: '#222222',
+    },
+    floatingContainer: {
+        padding: 6,
+        borderRadius: theme.roundness,
+        height: 42,
+        paddingHorizontal: 12,
+        backgroundColor: '#fff',
+        borderColor: '#dddddd',
+        borderWidth: 1,
+    },
+    floatingLabel: {
+        marginBottom: 0,
+        lineHeight: 12,
+        color: theme.colors.onPrimaryContainer,
+    },
+    floatingTime: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
+        lineHeight: 12,
+        color: theme.colors.onPrimaryContainer,
     },
     time: {
         color: theme.colors.onPrimary

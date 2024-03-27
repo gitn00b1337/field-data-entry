@@ -4,8 +4,8 @@ const IS_DEV = process.env.APP_VARIANT === 'development';
 export default {
     name: IS_DEV ? "Field Data Collection (Dev)" : "Field Data Collection",
     slug: "field-data-collection",
-    version: "1.0.0",
-    orientation: "portrait",
+    version: "1.0.3",
+    orientation: "default",
     scheme: "data-entry",
     icon: "./assets/icon.png",
     userInterfaceStyle: "light",
@@ -25,13 +25,26 @@ export default {
         package: IS_DEV ? "dev.com.appsforgood.datacollection" : "com.appsforgood.datacollection",
         permissions: [
             "android.permission.RECORD_AUDIO"
-        ]
+        ],
+        versionCode: 3
     },
     plugins: [
         [
             "expo-screen-orientation",
             {
-                "initialOrientation": "LANDSCAPE"
+                "initialOrientation": "DEFAULT"
+            }
+        ],
+        [
+            "expo-sensors",
+            {
+            "motionPermission": "Allow $(PRODUCT_NAME) to access your device motion."
+            },
+        ],
+        [
+            "expo-document-picker",
+            {
+              "iCloudContainerEnvironment": "Production"
             }
         ],
         [

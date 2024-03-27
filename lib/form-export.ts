@@ -1,4 +1,4 @@
-import { FormEntryV2, FormFieldType, FormRow, FormScreenConfig, GlobalFieldType, } from "./config";
+import { FormConfig, FormEntryV2, FormFieldType, FormRow, FormScreenConfig, GlobalFieldType, } from "./config";
 import * as FileSystem from 'expo-file-system';
 import moment from "moment";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -30,9 +30,31 @@ async function trySaveFileUsingCachedPermissions(asyncStoreKey: string, fileCont
 
 function getExportFileName(entry: FormEntryV2) {
     const createdAt = moment.utc(entry.createdAt);
-    const createdAtStr = createdAt.format('dd-MM-yyy-HH-mm-ss');
+    const createdAtStr = createdAt.format('dd-MM-yy-HH-mm-ss');
 
-    return `${createdAtStr}.csv`;
+    return `DataExport_${createdAtStr}.csv`;
+}
+
+function getMultiExportFileName(entries: FormEntryV2[]) {
+    const ordered = entries.sort((e1, e2) => {
+        const c1 = moment.utc(e1.createdAt);
+        const c2 = moment.utc(e2.createdAt);
+
+        if (c1.isBefore(c2)) {
+            return -1;
+        }
+        else if (c1.isAfter(c2)) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    });
+
+    const first = moment.utc(ordered[0].createdAt).format('dd-MM-yy');
+    const last = moment.utc(ordered.slice(-1)[0].createdAt).format('dd-MM-yy');
+
+    return `DataExport_${first}_${last}.csv`
 }
 
 function getExportColumns(entry: FormEntryV2) {
@@ -46,19 +68,62 @@ function getExportColumns(entry: FormEntryV2) {
     }
 
     return [
+        getEntryDateColumn(entry),
         ...columns,
         ...convertGlobalFieldsToColumns(entry, columns.length),
     ];
 }
 
-export async function exportForm(entry: FormEntryV2) {
-    const columns = getExportColumns(entry);
-    const csv = writeColumnsCSV(columns);
-    console.log(csv);
+export async function exportTemplate(config: FormConfig) {
+    const json = JSON.stringify(config);
+    const fileName = `${config.name || 'Template-Export'}.json`;
 
     const asyncStoreKey = "SAFStore";
-    const fileName = getExportFileName(entry);
-    const { success } = await trySaveFileUsingCachedPermissions(asyncStoreKey, csv, fileName);
+    const { success } = await trySaveFileUsingCachedPermissions(asyncStoreKey, json, fileName, 'application/json');
+
+    if (!success) {
+        const downloadDir = SAF.getUriForDirectoryInRoot('Documents');
+        const permission = await SAF.requestDirectoryPermissionsAsync(downloadDir);
+
+         if (!permission.granted) {
+            return;
+        }
+
+        await SAF.createFileAsync(permission.directoryUri, fileName, 'application/json');
+        await AsyncStorage.setItem(asyncStoreKey, permission.directoryUri);
+    }
+}
+
+function getMergedExportColumns(entries: FormEntryV2[]) {
+    let columns: Column[] = [];
+
+    for (const entry of entries) {
+        const cols = getExportColumns(entry);
+        
+        for (const column of cols) {
+            const nameMatch = cols.findIndex(c => c.name === column.name);
+
+            if (nameMatch === -1) {
+                columns.push(column);
+            }
+            else {
+                columns[nameMatch] = {
+                    ...columns[nameMatch],
+                    rows: [
+                        ...columns[nameMatch].rows,
+                        ...column.rows
+                    ]
+                }
+            }
+        }
+    }
+
+    return columns;
+}
+
+async function writeCSV(fileName: string, contents: string) {
+    const asyncStoreKey = "SAFStore";
+    const { success } = await trySaveFileUsingCachedPermissions(asyncStoreKey, contents, fileName);
     
     if (!success) {
         const downloadDir = SAF.getUriForDirectoryInRoot('Documents');
@@ -68,10 +133,37 @@ export async function exportForm(entry: FormEntryV2) {
             return;
         }
 
-        const path = `~/Documents/${fileName}`;
         await SAF.createFileAsync(permission.directoryUri, fileName, 'text/csv');
         await AsyncStorage.setItem(asyncStoreKey, permission.directoryUri);
     }
+}
+
+export async function exportMultipleForms(entries: FormEntryV2[]) {
+    for (const entry of entries) {
+        await exportForm(entry);
+    }
+
+    // if (entries.length === 0) {
+    //     return;
+    // }
+    // else if (entries.length === 1) {
+    //     return await exportForm(entries[0]);
+    // }
+
+    // const columns = getMergedExportColumns(entries);
+    // const csv = writeColumnsCSV(columns);
+    
+    // const fileName = getMultiExportFileName(entries);
+    // await writeCSV(fileName, csv);
+}
+
+export async function exportForm(entry: FormEntryV2) {
+    const columns = getExportColumns(entry);
+    const csv = writeColumnsCSV(columns);
+    // console.log(csv);
+
+    const fileName = getExportFileName(entry);
+    await writeCSV(fileName, csv);
 }
 
 type ScreenRowGroup = {
@@ -141,16 +233,12 @@ function getColumns(entry: FormEntryV2, groups: ScreenRowGroup[]): Column[] {
         // all rows in this group have the same field config as they're duplicates
         const mapped: Column[] = [];
 
-        console.log(entry.values)
-
         for (const row of group.rows) {
             for (let fieldIndex = 0; fieldIndex < row.fields.length; fieldIndex++) {
                 const field = row.fields[fieldIndex];
                 const currentCol = mapped[fieldIndex];
                 const entryValue = entry.values[field.entryKey];
                 const value = typeof entryValue !== 'undefined' ? entryValue?.value : '';
-
-                console.log(field);
     
                 mapped[fieldIndex] =  {
                     name: field.label,
@@ -180,15 +268,17 @@ function getMaxRows(columns: Column[]) {
 
 }
 
-function writeColumnsCSV(columns: Column[]) {
+function writeColumnsCSV(columns: Column[], isAppend = false) {
     const maxRows = getMaxRows(columns);
+    const startIndex = isAppend ? 0 : -1;
     let csv = '';
 
-    for (let rowIndex = -1; rowIndex < maxRows; rowIndex++) {
+
+    for (let rowIndex = startIndex; rowIndex < maxRows; rowIndex++) {
         let line = '';
 
         if (rowIndex === -1) {
-            line = columns.map(c => c.name).join(',');
+            line = columns.map(c => `"${c.name}"`).join(',');
         }
         else {
             line = columns.map(c => {
@@ -197,7 +287,8 @@ function writeColumnsCSV(columns: Column[]) {
                     : rowIndex;
 
                 const row = c.rows[index];
-                return parseValue(row?.value, row?.type);
+                const parsed = parseValue(row?.value, row?.type);
+                return `"${parsed}"`;
             }).join(',');
         }
 
@@ -222,12 +313,65 @@ function parseValue(val: any, type: FormFieldType | GlobalFieldType) {
     }
 }
 
+function groupScreenRows(screen: FormScreenConfig): GroupedScreenRows {
+    return screen.rows.reduce<GroupedScreenRows>((grp, row, rowIndex) => {
+        if (!row.parentId) {
+            return {
+                ...grp,
+                [row.id]: {
+                    index: rowIndex,
+                    rows: [
+                        row,
+                        ...(grp[row.id]?.rows || []),
+                    ],
+                },
+            };
+        }
+        else {
+            return {
+                ...grp,
+                [row.parentId]: {
+                    ...grp[row.parentId],
+                    rows: [
+                        ...(grp[row.parentId]?.rows || []),
+                        row
+                    ]
+                }
+            }
+        }
+    }, {});
+}
+
+function getEntryDateColumn(entry: FormEntryV2) {
+    const value = moment(entry.createdAt)
+        .utc()
+        .local()
+        .format('HH:mm dd-MM-YYY');
+
+    const col: Column = {
+        name: 'Entry Time',
+        index: -1,
+        rows: [
+            {
+                value,
+                type: 'TEXT',
+            }
+        ]
+    };
+
+    return col;
+}
+
 export function convertScreenToSheetColumns(entry: FormEntryV2, screenIndex: number) {
     const screen = entry.config.screens[screenIndex];
 
-    const grouped = groupScreenRowsByRowKey(screen);
+    // const grouped = groupScreenRowsByRowKey(screen);
+    const grouped = groupScreenRows(screen);
+    console.log(`Grouped Rows, expected 1, got ${Object.keys(grouped).length}`)
     const orderedGroups = orderGroupedRows(grouped);
+    console.log(`Ordered count: ${orderedGroups.length}`);
     const columns = getColumns(entry, orderedGroups);
+    console.log(`Columns, expected 6, received ${columns.length}`)
     return columns;    
 }
 
@@ -236,7 +380,7 @@ export function convertGlobalFieldsToColumns(entry: FormEntryV2, startIndex: num
         const value = entry.values[gf.entryKey]?.value;
 
         const col: Column = {
-            name: gf.name,
+            name: gf.label,
             index: startIndex + index,
             rows: [
                 {

@@ -81,18 +81,17 @@ const styles = StyleSheet.create({
     listRow: {
         flexDirection: 'row',
         flexGrow: 1,
-        justifyContent: 'space-evenly',
+        justifyContent: 'flex-start',
         alignItems: 'stretch',
     },
     listDataCol: {
-        flexGrow: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         alignItems: 'flex-start',
-        paddingVertical: 6,
+        alignContent: 'flex-start',
+        paddingVertical: 12,
         paddingHorizontal: 12,
-        
     },
     evenRow: {
-        backgroundColor: '#EDEDED'
-    }
+        backgroundColor: 'rgba(240, 241, 245, 0.5)'
+    },
 })

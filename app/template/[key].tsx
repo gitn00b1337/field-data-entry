@@ -1,6 +1,6 @@
 import { useGlobalSearchParams, useRouter, } from "expo-router";
 import { View } from "react-native";
-import { Text, } from "react-native-paper";
+import { ActivityIndicator, Text, useTheme, } from "react-native-paper";
 import { loadConfiguration, saveConfiguration } from "../../lib/database";
 import { useEffect, useState } from "react";
 import { FormEntryV2, createFormV2, } from "../../lib/config";
@@ -14,6 +14,7 @@ export default function Config() {
     const [loadingError, setLoadingError] = useState('');
     const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
     const router = useRouter();
+    const theme = useTheme();
 
     useEffect(() => {
         loadConfiguration(configId)
@@ -57,8 +58,8 @@ export default function Config() {
     }
     else if (!config) {
         return (
-            <View>
-                 <Text>Loading...</Text>
+            <View style={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', }}>
+                <ActivityIndicator animating={true} color={theme.colors.secondary} size='large' />
             </View>
         )
     }

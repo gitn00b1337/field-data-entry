@@ -2,7 +2,7 @@ import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { FormEntryV2, FormRow } from "../../lib/config";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
-import { Text } from "react-native-paper";
+import { ActivityIndicator, Text, useTheme } from "react-native-paper";
 import { ScrollView, View, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { DataCollectionForm } from "../../components/data-collection-form";
@@ -32,8 +32,7 @@ export function EntryForm({
     const [isExporting, setIsExporting] = useState(false);
     const [showLeaveDialog, setShowLeaveDialog] = useState(false);
     const [showDeleteFormDialog, setShowDeleteFormDialog] = useState(false);
-
-    console.log('EntryScreen!')
+    const theme = useTheme();
 
     async function handleSubmit(values: FormEntryV2) {
         console.log('submitting...')
@@ -115,22 +114,14 @@ export function EntryForm({
                 flexDirection: 'row',
             }}>
                 <View style={styles.container}>
-                    {
-                        entry && (
-                            <ScreenNavigator
-                                form={entry}
-                                screenIndex={screenIndex}
-                                setScreenIndex={setScreenIndex}
-                            />
-                        )
-                    }
-                    <Text style={styles.header}>{entry?.config.name || 'APOPO Data Collection'}</Text>
                     <View style={{
                         flexGrow: 1,
                     }}>
                         {
                             state === 'LOADING' && (
-                                <Text>Loading...</Text>
+                                <View style={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', }}>
+                                    <ActivityIndicator animating={true} color={theme.colors.secondary} size='large' />
+                                </View>
                             )
                         }
                         {
@@ -164,13 +155,6 @@ const styles = StyleSheet.create({
     container: {
         flexGrow: 1,
         backgroundColor: '#FFFFFF',
-        maxWidth: 1200,
-    },
-    header: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        alignSelf: 'center',
-        paddingVertical: 24,
     },
     buttonContainer: {
         display: 'flex',

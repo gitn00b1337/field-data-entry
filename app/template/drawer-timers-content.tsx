@@ -6,6 +6,7 @@ import { DotsPopupMenu } from "../../components/dots-popup-menu";
 import { FormSelectField } from "../../components/form-select";
 import { FormInput } from "../../components/form-input";
 import { Control, useFieldArray, useWatch } from "react-hook-form";
+import { AddButton } from "../../components/add-button";
 
 export type DrawerTimersContentProps = {
     theme: MD3Theme;
@@ -25,7 +26,7 @@ export function DrawerTimersContent({
 
     function handleAddMultiScreenFieldPress() {
         const field = createGlobalField({
-            name: `globalFields[${globalFields.fields.length}]`,
+            name: `config.globalFields.${globalFields.fields.length}`,
         });
 
         globalFields.append(field);
@@ -53,8 +54,12 @@ export function DrawerTimersContent({
                 }                       
                 </View>
                 <View style={styles.row}>
-                    <View style={{ flexGrow: 1, }}>
-                        <Button onPress={handleAddMultiScreenFieldPress}>Add Timer</Button>
+                    <View style={{ flexGrow: 1, alignItems: 'center', paddingBottom: 12, }}>
+                        <AddButton 
+                            onPress={handleAddMultiScreenFieldPress} 
+                            label="Add Timer"
+                            style={{ width: 150, maxWidth: 150 }}
+                        />
                     </View>
                 </View>
         </View>
@@ -125,7 +130,7 @@ const makeGlobalFieldStyles = (theme: MD3Theme) => StyleSheet.create({
         width: '100%', 
         paddingBottom: 24, 
         marginBottom: 12, 
-        borderBottomColor: theme.colors.outlineVariant, 
+        borderBottomColor: theme.colors.outline, 
         borderBottomWidth: 1, 
         paddingLeft: 12,
         paddingRight: 12,

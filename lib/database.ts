@@ -6,8 +6,6 @@ import { sanitizeConfig } from "./form";
 import { Migration, getPendingMigrations } from "./database-migrations";
 import moment from "moment";
 
-let creating: Promise<any>;
-
 const DB_NAME = "fielddb.db";
 
 export type DbTransaction = (sql: string, params?: any[]) => Promise<SQLResultSet>;
@@ -19,37 +17,49 @@ export type DbTransaction = (sql: string, params?: any[]) => Promise<SQLResultSe
  * @param params Any params required for the sql
  * @returns Promise of the result set
  */
-const runTransaction: DbTransaction = (sql, params = []) => {
-    return new Promise((resolve, reject) => {
-        return creating
-            .then(() => {
-                console.log('DB created, running transaction...')
-                
-                function onComplete(_: SQLTransaction, resultSet: SQLResultSet) {
-                    console.log('Transaction complete')
-                    return resolve(resultSet);
-                }
+async function runTransaction(sql: string, params = []): Promise<SQLite.SQLResultSet> {
+    try {
+        console.log('Awaiting creating')
+        await creating;
+        console.log('Created')
 
-                function onError(_: SQLTransaction, error: SQLError) {
-                    reject(error?.message || 'An error occured running a transaction query.');
-                    return true; // return true to rollback
-                }
+        return await new Promise((resolve, reject) => {
+            console.log('DB created, running transaction...')
+            let result: SQLResultSet;
+            
+            function onComplete(_: SQLTransaction, resultSet: SQLResultSet) {
+                console.log('Transaction complete')
+                result = resultSet;
+            }
 
-                try {
-                    database.transaction((tx) => {
-                        tx.executeSql(sql, params, onComplete, onError)
-                    })
-                }
-                catch (e) {
-                    console.error(e);
-                    return reject(e?.message || `An error ocurred running ${sql}`);
-                }
-            })
-            .catch((reason) => {
-                console.error(reason);
-                reject(reason)
-            });
-    });
+            function onError(_: SQLTransaction, error: SQLError) {
+                return true; // return true to rollback
+            }
+
+            function onTransactionComplete() {
+                resolve(result);
+            }
+
+            function onTransactionError(error: SQLError) {
+                console.error(error);
+                reject(error?.message);
+            }
+
+            try {
+                database.transaction((tx) => {
+                    tx.executeSql(sql, params, onComplete, onError)
+                }, onTransactionError, onTransactionComplete)
+            }
+            catch (e) {
+                console.error(e);
+                return reject(e?.message || `An error ocurred running ${sql}`);
+            }
+        });
+    }
+    catch (e) {
+        console.error(e);
+        throw new Error(e);
+    }
 }
 
 /**
@@ -97,14 +107,15 @@ const runTransactionDangerous: DbTransaction = (sql, params = []) => {
 
 function createTable(name: string, sql: string, params?: any[]): Promise<SQLite.SQLResultSet> {
     return new Promise((resolve, reject) => {
+        let results: SQLResultSet;
+
         function onComplete(_: SQLTransaction, resultSet: SQLResultSet) {
-            console.log(`Table ${name} created.`)
-            return resolve(resultSet);
+            console.log(`Table ${name} created.`);
+            results = resultSet;
         }
 
         function onError(_: SQLTransaction, error: SQLError) {
             console.error(`An error occured creating table ${name}. ${error.message}`);
-            reject(error.message);
             return true; // return true to rollback
         }
 
@@ -116,6 +127,7 @@ function createTable(name: string, sql: string, params?: any[]): Promise<SQLite.
 
         function onTransactionSuccess() {
             console.log('createTable: Transaction success.')
+            return resolve(results);
         }
 
         try {
@@ -143,15 +155,21 @@ function createConfigTableIfNotExists() {
     return createTable('configs', query);
 }
 
-function createDatabase() {
+async function createDatabase() {
     console.log('createDatabase: Creating database...')
-    creating = Promise.all([
-        createConfigTableIfNotExists(),
-        createMigrationTableIfNotExists(),
-    ])
-    .then(migrateDatabase);
+    try {
+        await createConfigTableIfNotExists();
+        await createMigrationTableIfNotExists();
 
-    return creating;
+        console.log('Migrating database')
+        await migrateDatabase();
+        console.log('Database migrated.')
+    }
+    catch (e) {
+        console.error('An error occured creating the database');
+        // retrigger create on next request to it
+        return createDatabase();
+    }
 }
 
 function openDatabase() {
@@ -165,11 +183,7 @@ function openDatabase() {
 const database = openDatabase();
 
 // create the tables. queries shouldnt run until tables have been created/migrated
-createDatabase()
-    .then(() => console.log('Database created.'))
-    .catch(e => {
-        console.error(e);
-    });
+let creating: Promise<void> = createDatabase()
 
 function createConfiguration(config: FormConfig): Promise<SQLite.SQLResultSet> {
     const params = [
@@ -181,7 +195,6 @@ function createConfiguration(config: FormConfig): Promise<SQLite.SQLResultSet> {
         values (?, ?);
     `;
 
-    console.log('Creating configuration...')
     return runTransaction(sql, params);
 }
 
@@ -425,28 +438,20 @@ export async function getEntries(configId: number): Promise<EntriesOverview[]> {
     return mapped;
 }
 
-function createMigrationTableIfNotExists() {
+async function createMigrationTableIfNotExists() {
     const sql = `CREATE TABLE IF NOT EXISTS migrations (
         id INTEGER primary key not null,
         lastRunIndex integer not null
     );`;
 
-    return createTable('migrations', sql)
-        .then(() => {
-            runTransaction(`INSERT INTO migrations(lastRunIndex) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM migrations);`)
-                .then((value: SQLite.SQLResultSet) => {
-                    console.log('Migration rows inserted:')
-                    console.log(value.rows);
-                })
-                .catch(e => {
-                    console.error('An error occured adding migration info.');
-                    console.error(e);
-                });
-        })
-        .catch(e => {
-            console.error('An error occured creating the migrations table.');
-            console.error(e);
-        });
+    try {
+        await createTable('migrations', sql);
+        await runTransactionDangerous(`INSERT INTO migrations(lastRunIndex) SELECT 0 WHERE NOT EXISTS (SELECT 1 FROM migrations);`);
+    }
+    catch (e) {
+        console.error('An error occured creating the migrations table.');
+        console.error(e);
+    }
 }
 
 async function getMigrationIndex() {

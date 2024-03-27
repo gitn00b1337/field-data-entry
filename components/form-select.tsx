@@ -1,135 +1,186 @@
-import { useEffect, useState } from "react";
-import { View, StyleSheet, Text } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { View, StyleSheet, Text, } from "react-native";
 import { Dropdown, } from 'react-native-element-dropdown';
 import { MD3Theme, useTheme } from "react-native-paper";
 import { deferredEffect } from "../lib/effect";
 import { FormEntryV2 } from "../lib/config";
-import { Control, Path, useController } from "react-hook-form";
+import { Control, Controller, Path, useController, useWatch } from "react-hook-form";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 export type FormSelectProps = {
-    fieldName: string;
+  fieldName: string;
+  label: string;
+  options: {
     label: string;
-    options: {
-        label: string;
-        value: string;
-    }[];
-    onFocus?: () => void;
-    onChange?: (val: string) => void;
-    isDisabled?: boolean;
-    control: Control<FormEntryV2, any>;
-    defaultValue?: string;
+    value: string;
+  }[];
+  onFocus?: () => void;
+  onChange?: (val: string) => void;
+  isDisabled?: boolean;
+  control: Control<FormEntryV2, any>;
+  defaultValue?: string;
 }
 
 export function FormSelectField({
-    fieldName,
-    label,
-    options,
-    onFocus,
-    onChange,
-    control,
+  fieldName,
+  label,
+  options,
+  onFocus,
+  onChange,
+  control,
 }: FormSelectProps) {
-    const [isFocus, setIsFocus] = useState(false);
-
-    const theme = useTheme();
-    const styles = makeStyles(theme);
-
-    const {
-      field,
-      fieldState,
-  } = useController({
-      name: fieldName as Path<FormEntryV2>,
-      control,
+  const [isFocus, setIsFocus] = useState(false);
+  const val = useWatch({
+    control,
+    name: fieldName as Path<FormEntryV2>,
   });
+  // const labelFontSize = useSharedValue(`${val}`.length ? 12 : 16);
+  // const translateY = useSharedValue(0);
+  // const translateX = useSharedValue('0');
 
-    useEffect(() => {
-        if (isFocus && onFocus) {
-            onFocus();
-        }
-    }, [isFocus]);
+  const theme = useTheme();
+  const styles = makeStyles(theme);
 
-    deferredEffect(() => {
-      if (typeof onChange === 'function') {
-        onChange(field.value as string);
-      }   
-    }, [ field.value ]);
+  const hasVal = (Array.isArray(val) || typeof val === 'string') && val.length > 0;
 
-    return (
+  useEffect(() => {
+    if (isFocus && onFocus) {
+      onFocus();
+    }
+  }, [isFocus]);
+
+  deferredEffect(() => {
+    if (typeof onChange === 'function') {
+      onChange(val as string);
+    }
+  }, [val]);
+
+  const animationDuration = 200;
+
+  const labelStyles = useAnimatedStyle(() => {
+    if (typeof val === 'string' && val.length > 0) {
+      // if has a value, position top left
+      return {
+        top: withTiming(0, { duration: animationDuration }),
+        left: withTiming(16, { duration: animationDuration }),
+      }
+    } 
+
+    return {
+      top: withTiming(8, { duration: animationDuration }),
+      left: withTiming(16, { duration: animationDuration }),
+    }
+  }, [ val ]);
+
+  const labelTextStyles = useAnimatedStyle(() => {
+    if (typeof val === 'string' && val.length > 0) {
+      return { 
+        fontSize: withTiming(12, { duration: animationDuration }),
+      }
+    }
+
+    return { 
+      fontSize: withTiming(16, { duration: animationDuration }),
+    }
+  }, [ val ]);
+
+  return (
+    <View style={styles.border}>
+        <View style={{ flexGrow: 1, }} />
         <View style={styles.container}>
-            <Text style={[styles.label, isFocus && { color: theme.colors.primary }]}>
-                { label || 'New Field' }
-            </Text>
-            <Dropdown
-                style={[styles.dropdown, isFocus && { borderColor: theme.colors.primary }]}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                inputSearchStyle={styles.inputSearchStyle}
-                iconStyle={styles.iconStyle}
-                data={options}
-                search
-                maxHeight={300}
-                labelField={'label'}
-                valueField={'value'}
-                placeholder={'Select item'}
-                searchPlaceholder="Search..."
-                itemContainerStyle={{ marginLeft: 0, paddingLeft: 0,  left: 0}}
-                value={field.value as string}
-                onFocus={() => setIsFocus(true)}
-                onBlur={() => setIsFocus(false)}
-                onChange={item => {
+            <Animated.View style={[{
+                width: '100%',
+                position: 'absolute',
+                zIndex: -100
+            }, labelStyles ]}>
+                <Animated.Text
+                    style={labelTextStyles}
+                >
+                    {label || 'New Field'}
+                </Animated.Text>
+            </Animated.View>   
+                <View style={{ width: '100%' }}>  
+            <Controller
+              key={`field-${fieldName}`}
+              control={control}
+              name={fieldName as Path<FormEntryV2>}
+              render={({ field, }) => (
+                <Dropdown
+                  style={[styles.dropdown, isFocus && { borderColor: theme.colors.primary }]}
+                  placeholderStyle={styles.placeholderStyle}
+                  selectedTextStyle={styles.selectedTextStyle}
+                  inputSearchStyle={styles.inputSearchStyle}
+                  containerStyle={styles.dropdownContainer}
+                  iconStyle={styles.iconStyle}
+                  data={options}
+                  search
+                  maxHeight={300}
+                  labelField={'label'}
+                  valueField={'value'}
+                  placeholder={''}
+                  searchPlaceholder="Search..."
+                  itemContainerStyle={{ marginLeft: 0, paddingLeft: 0, left: 0 }}
+                  value={field.value?.toString()}
+                  onFocus={() => setIsFocus(true)}
+                  onBlur={() => setIsFocus(false)}
+                  onChange={item => {
                     field.onChange(item.value);
-                    setIsFocus(false);     
-                }}
+                    setIsFocus(false);
+                  }}
+                />
+              )}
             />
-        </View>
-    )
+            </View>
+            </View>
+    </View>
+  )
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
-    container: {
+  border: {
+    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
+    borderBottomWidth: 1,
+    borderBottomColor: '#DDDDDD',
+    flexGrow: 1,
+    marginBottom: 10,
+    flexDirection: 'column',
+  },
+  container: {
       backgroundColor: 'white',
-      paddingTop: 16,
-      borderTopRightRadius: 4,
-      borderTopLeftRadius: 4,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.outlineVariant,
-      flexGrow: 1,
-      justifyContent: 'center',
-      alignContent: 'center',
-      // alignItems: 'center'
-    },
-    dropdown: {
-      paddingHorizontal: 4,
+      justifyContent: 'flex-end',
+      flexDirection: 'row',
+      position: 'relative',
+      
+  },
+  dropdownContainer: {
+      paddingTop: 0,
       paddingBottom: 0,
+  },
+  dropdown: {
       marginBottom: 0,
-    },
-    icon: {
+      paddingBottom: 0,
+      paddingTop: 10,
+      paddingHorizontal: 4,
+  },
+  icon: {
       marginRight: 5,
-    },
-    label: {
-      position: 'absolute',
-      backgroundColor: 'white',
-      left: 8,
-      top: 7,
-      zIndex: 999,
-      paddingHorizontal: 8,
-      fontSize: 12,
-    },
-    placeholderStyle: {
+  },
+  placeholderStyle: {
       fontSize: 16,
       paddingLeft: 16,
-    },
-    selectedTextStyle: {
+  },
+  selectedTextStyle: {
       fontSize: 16,
       color: theme.colors.onSurface,
       paddingLeft: 12,
-    },
-    iconStyle: {
-        width: 20,
-        height: 20,
-    },
-    inputSearchStyle: {
-      height: 40,
+  },
+  iconStyle: {
+      width: 20,
+      height: 20,
+  },
+  inputSearchStyle: {
       fontSize: 16,
       borderRadius: 2,
-    },
-  });
+  },
+});

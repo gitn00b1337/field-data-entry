@@ -7,6 +7,7 @@ import { DotsPopupMenu } from "../../components/dots-popup-menu";
 import { useGlobalState } from "../global-state";
 import { Control, UseFormSetValue, useWatch } from "react-hook-form";
 import { CheckboxField } from "../../components/form-checkbox";
+import { AddButton } from "../../components/add-button";
 
 export type DrawerRowContentProps = {
     theme: MD3Theme;
@@ -70,13 +71,16 @@ export function DrawerRowContent({
     onDeleteRow,
 }: DrawerRowContentProps) {
     const styles = makeStyles(theme);
-    const selectedRow = screen?.rows[selectedRowIndex];
     const [_, dispatch] = useGlobalState();
 
     const rows = useWatch({
         control,
         name: `config.screens.${screenIndex}.rows`,
     });
+
+    const selectedRow = rows[selectedRowIndex];
+    console.log(`Selected row index: ${selectedRowIndex}`);
+    console.log(`Drawer rows: ${rows.length}`)
 
     if (!selectedRow) {
         return (
@@ -127,8 +131,11 @@ export function DrawerRowContent({
                 ))
             }
             <View style={[styles.row]}>
-                <View style={{ flexGrow: 1, }}>
-                    <Button onPress={onAddRow}>Add Row</Button>
+                <View style={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 16 }}>
+                    <AddButton 
+                        onPress={onAddRow} 
+                        label="Add Row"
+                    />
                 </View>
             </View>
         </View>
@@ -196,7 +203,7 @@ function RowConfig({
                     )}
                     >                                                
                     {
-                        index === selectedRowIndex && (
+                        index === selectedRowIndex && selectedRow.fields && (
                             <NestableScrollContainer contentContainerStyle={styles.navContainer}>
                                 <NestableDraggableFlatList
                                     style={{ flex: undefined, flexGrow: 0, }}
@@ -214,18 +221,10 @@ function RowConfig({
                                 <View style={[styles.row, { flexDirection: 'column'}]}>
                                     <View style={styles.addFieldDivider} />
                                     <View style={styles.addFieldContainer}>
-                                        <IconButton
-                                            icon='plus-circle-outline'
-                                            size={16}
+                                        <AddButton 
+                                            onPress={onAddField} 
+                                            label="Add Field"
                                         />
-                                        <Button
-                                            style={styles.addFieldBtn}
-                                            contentStyle={styles.addFieldBtnContent}
-                                            labelStyle={styles.addFieldBtnText}
-                                            onPress={onAddField}
-                                        >
-                                            Add Field
-                                        </Button>
                                     </View>
                                 </View>
                                 <View style={[styles.row]}>
@@ -350,7 +349,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     },
     addFieldDivider: {
         marginHorizontal: 'auto',
-        backgroundColor: theme.colors.outlineVariant,
+        backgroundColor: theme.colors.outline,
         width: '90%',
         alignSelf: 'center',
         marginTop: 12,
@@ -398,13 +397,13 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     },
     accordionContainer: {
         borderBottomWidth: 1,
-        borderColor: theme.colors.outlineVariant,
-        paddingVertical: 4,
+        borderColor: theme.colors.outline,
+        paddingVertical: 0,
         paddingLeft: 12,
     },
     firstAccordionContainer: {
         borderTopWidth: 1,
-        borderColor: theme.colors.outlineVariant,
+        borderColor: theme.colors.outline,
     },
     accordionTitle: {
         padding: 0,

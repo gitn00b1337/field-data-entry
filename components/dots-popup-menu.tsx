@@ -22,11 +22,13 @@ export type DotsPopupMenuAction = {
 export type DotsPopupMenuProps = {
     actions: DotsPopupMenuAction[];
     size?: number;
+    iconColor?: string;
 }
 
 export const DotsPopupMenu = ({
     actions,
     size = 24,
+    iconColor = 'gray',
 }: DotsPopupMenuProps) => {
     const [showMenu, setShowMenu] = useState(false);
     const [menuAnchor, setMenuAnchor] = useState({ x: 0, y: 0 })
@@ -49,7 +51,7 @@ export const DotsPopupMenu = ({
             <IconButton 
                 icon='dots-vertical'
                 size={size}
-                iconColor="gray"
+                iconColor={iconColor}
                 style={styles.menuIcon}
                 onPress={onIconPress}
             />

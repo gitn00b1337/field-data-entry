@@ -1,7 +1,7 @@
 import { StyleSheet, TouchableOpacity, View, } from "react-native";
 import { FormConfig, FormEntryV2, FormScreenConfig, createFieldConfig, createFieldEntry,  } from "../../lib/config";
 import { useTheme, MD3Theme, IconButton,  } from 'react-native-paper';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGlobalState } from "../global-state";
 import { DrawerScreenContent } from "./drawer-screen-content";
 import { DrawerRowContent } from "./drawer-row-content";
@@ -11,6 +11,8 @@ import { DrawerSettingsContent } from "./drawer-settings-content";
 import { DrawerTriggersContent } from "./drawer-triggers-content";
 import { DrawerTimersContent } from "./drawer-timers-content";
 import { Control, FormState, UseFormRegister, UseFormSetValue, UseFormWatch, useFieldArray, useWatch } from "react-hook-form";
+import { DeviceMotion, DeviceMotionOrientation } from "expo-sensors";
+import { ScrollView } from "react-native-gesture-handler";
 
 export type DrawerConfigType = 'NAV' | 'ROW' | 'FIELD' | 'TRIGGER' | 'SETTINGS' | 'TIMERS';
 
@@ -55,7 +57,19 @@ export function DrawerMenu({
         name: 'config.screens',
         control,
     });
+    const [isPortrait, setIsPortrait] = useState(false);
 
+    useEffect(() => {
+        const subscription = DeviceMotion.addListener(({ orientation }) => {
+            const isPortrait = orientation == DeviceMotionOrientation.Portrait
+                || orientation == DeviceMotionOrientation.UpsideDown;
+
+            setIsPortrait(isPortrait);
+        });
+
+        return () => DeviceMotion.removeSubscription(subscription);
+    }, []);
+    
     const {
         append: appendField,
         remove: removeField,
@@ -68,6 +82,8 @@ export function DrawerMenu({
     function handleDeleteField(fieldIndex: number) {
         removeField(fieldIndex);
         onFieldDeleted(fieldIndex);
+
+        dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW');
     }
 
     function handleAddField() {
@@ -97,10 +113,14 @@ export function DrawerMenu({
     }
 
     return (
-        <View style={{
-            ...styles.container,
-            display: state.drawerVisible ? 'flex' : 'none',
-        }}>
+        <Wrapper isPortrait={isPortrait}>
+        <View style={[
+            {
+                ...styles.container,
+                display: state.drawerVisible ? 'flex' : 'none',
+            }, 
+            isPortrait && styles.portraitContainer,
+            ]}>
             {
                 state.configType === 'NAV' && (
                     <DrawerScreenContent
@@ -170,7 +190,7 @@ export function DrawerMenu({
                     />
                 )
             }
-            <View style={styles.actionsContainer}>
+            <View style={[styles.actionsContainer, isPortrait && styles.portraitBottomActions ]}>
                 <ActionButton
                     onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'SETTINGS')}
                     icon='cog'
@@ -193,6 +213,38 @@ export function DrawerMenu({
                 /> */}
             </View>
         </View>
+        </Wrapper>
+    )
+}
+
+function Wrapper({ children, isPortrait }: { children: React.ReactNode, isPortrait: boolean }) {
+    if (isPortrait) {
+        return (
+            <View style={{
+                borderColor: '#DDDDDD',
+                borderWidth: 1,
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                height: '40%',
+                elevation: 12,
+                overflow: 'hidden',
+                backgroundColor: '#fff',
+                paddingTop: 12,
+                marginTop: 12,
+            }}>
+                <ScrollView style={{
+                }}>
+                    { children }
+                </ScrollView>
+            </View>
+            
+        )
+    }
+
+    return (
+        <>
+            { children }
+        </>
     )
 }
 
@@ -257,6 +309,12 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         maxWidth: 450,
         backgroundColor: '#fff',
     },
+    portraitContainer: {
+        width: '100%',
+        maxWidth: undefined,
+        backgroundColor: '#fff',
+        minHeight: 435,
+    },
     actionsContainer: {
         width: '100%',
         alignSelf: 'flex-end',
@@ -267,4 +325,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: theme.colors.surface,
     },  
+    portraitBottomActions: {
+
+    }
 })

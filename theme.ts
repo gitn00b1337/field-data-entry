@@ -55,7 +55,7 @@ export function getTheme(): MD3Theme {
             "onSurface": "#000",
             "surfaceVariant": "rgb(244, 222, 212)",
             "onSurfaceVariant": "rgb(82, 68, 61)",
-            "outline": "#00325B",
+            "outline": "#DDDDDD",
             "outlineVariant": "rgb(215, 194, 185)",
             "shadow": "rgb(0, 0, 0)",
             "scrim": "rgb(0, 0, 0)",
@@ -74,7 +74,8 @@ export function getTheme(): MD3Theme {
             "onSurfaceDisabled": "rgba(32, 26, 24, 0.38)",
             "backdrop": "rgba(59, 46, 39, 0.4)"
         },    
-        fonts: configureFonts({ config: fontConfig, isV3: true, }) //      
+        fonts: configureFonts({ config: fontConfig, isV3: true, }),
+        roundness: 10    
     }
 
     return lightTheme;

@@ -1,10 +1,11 @@
 import { TouchableOpacity, View, StyleSheet } from "react-native";
-import { Text } from "react-native-paper";
+import { Button, IconButton, MD3Theme, Text, useTheme } from "react-native-paper";
 import { ActivityIndicator, MD2Colors } from 'react-native-paper';
 import { DotsPopupMenu } from "../../components/dots-popup-menu";
-import { deleteEntryById } from "../../lib/database";
+import { deleteEntryById, loadEntry } from "../../lib/database";
 import { useState } from "react";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
+import { exportMultipleForms } from "../../lib/form-export";
 
 export type EntryListItem = {
     name: string;
@@ -28,6 +29,9 @@ export function EntryList({
     onItemDeleted,
 }: EntryListProps) {
     const [snackbarOptions, setSnackbarOptions] = useState<{ type: FormSnackbarType, message: string } | undefined>();
+    const [selectedRows, setSelectedRows] = useState<number[]>([]);
+    const theme = useTheme();
+    const styles = makeStyles(theme);
 
     async function handleDeletePress(item: EntryListItem) {
         try {
@@ -38,6 +42,58 @@ export function EntryList({
             setSnackbarOptions({
                 type: 'ERROR',
                 message: 'An error occured deleting the entry. Please try again.',
+            });
+        }
+    }
+
+    function handleRowLongPress(item: EntryListItem) {
+        setSelectedRows([
+            ...selectedRows,
+            item.id,
+        ]);
+    }
+
+    function handleRowPress(item: EntryListItem) {
+        if (selectedRows.length) {
+            if (selectedRows.includes(item.id)) {
+                setSelectedRows(
+                    selectedRows.filter(id => id !== item.id)
+                )
+            }
+            else {
+                setSelectedRows([
+                    ...selectedRows,
+                    item.id,
+                ]);
+            }            
+        }
+        else {
+            onItemClick(item);
+        }
+    }
+
+    async function handleExportMultiPress() {
+        try {
+            console.log('Exporting entries')
+            const entriesRequests = selectedRows.map(id => {
+                return loadEntry(`${id}`);
+            });
+    
+            const results = await Promise.all(entriesRequests);
+    
+            await exportMultipleForms(results);
+
+            setSnackbarOptions({
+                type: 'SUCCESS',
+                message: 'Entries exported!',
+            })
+        }
+        catch (e) {
+            console.error(e);
+
+            setSnackbarOptions({
+                type: 'ERROR',
+                message: `An error occured loading selected entries: ${e.message}`
             });
         }
     }
@@ -76,39 +132,42 @@ export function EntryList({
                 )
             }
             <View style={styles.listRow}>
-                <View style={styles.listDataCol}>
-                    <Text>Entry</Text>
+                <View style={[styles.listDataCol, { flexGrow: 1, }]}>
+                    <Text style={styles.columnHeader}>Entry</Text>
                 </View>
-                <View style={styles.listDataCol}>
-                    <Text>Created At</Text>
+                <View style={[styles.listDataCol, { width: '30%' }]}>
+                    <Text style={styles.columnHeader}>Creation Time</Text>
                 </View>
-                <View style={styles.listDataCol}>
-                    <Text>Updated At</Text>
+                <View style={[styles.listDataCol, { width: '30%', marginRight: 50, }]}>
+                    <Text style={styles.columnHeader}>Last Updated</Text>
                 </View>
-            </View>
-            
+            </View>            
             {
                 items.map((item, index) => {
+                    const isSelected = selectedRows.includes(item.id);
                     return (
                         <TouchableOpacity 
                             key={`item-${item.url}`}
-                            onPress={() => onItemClick(item)}
+                            onPress={() => handleRowPress(item)}
                             style={[
                                 styles.listRow,
                                 index % 2 === 0 ? styles.evenRow : undefined,
+                                isSelected && styles.selectedRow,
                             ]}
+                            onLongPress={() => handleRowLongPress(item)}
                         >
-                            <View style={styles.listDataCol}>
-                                <Text>{ item.name || 'Not named.'} </Text>
+                            <View style={[styles.listDataCol, { flexGrow: 1, }]}>
+                                <Text style={[ isSelected && styles.selectedRowText ]}>{ item.name || 'Not named.'} </Text>
                             </View>
-                            <View style={styles.listDataCol}>
-                                <Text>{ item.createdAt }</Text>
+                            <View style={[styles.listDataCol, { width: '30%' }]}>
+                                <Text style={[ isSelected && styles.selectedRowText ]}>{ item.createdAt }</Text>
                             </View>
-                            <View style={styles.listDataCol}>
-                                <Text>{ item.updatedAt }</Text>
+                            <View style={[styles.listDataCol, { width: '30%' }]}>
+                                <Text style={[ isSelected && styles.selectedRowText ]}>{ item.updatedAt }</Text>
                             </View>
                             <View style={styles.dotsMenu}>
-                                <DotsPopupMenu                                
+                                <DotsPopupMenu
+                                    iconColor={isSelected ? '#fff' : '#000' }                                
                                     actions={[
                                         { key: 'delete', label: 'Delete', onPress: () => handleDeletePress(item) }
                                     ]}
@@ -118,13 +177,65 @@ export function EntryList({
                     )
                 })
             }
+            {
+                selectedRows.length > 0 && (
+                    <View style={styles.msOverviewContainer}>
+                        {/* <View style={styles.msCountContainer}>
+                            <Text style={styles.msCount}>{`${selectedRows.length} selected`}</Text>
+                        </View> */}
+                        <View>
+                            <Button
+                                icon='export'
+                                textColor="rgb(34, 34, 34)"
+                                style={styles.exportBtn}
+                                onPress={handleExportMultiPress}
+                                labelStyle={styles.exportLabelStyle}
+                                contentStyle={{ paddingHorizontal: 0 }}
+                            >
+                                Export All
+                            </Button>
+                        </View>
+                    </View>
+                )
+            }
         </View>
     )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: MD3Theme) =>  StyleSheet.create({
+    exportBtn: {
+        backgroundColor: '#fff',
+        borderRadius: theme.roundness,
+        paddingHorizontal: 0,
+        borderColor: '#DDDDDD',
+        borderWidth: 1,
+        width: 140,
+    },
+    exportLabelStyle: {
+        paddingHorizontal: 0,
+    },
+    columnHeader: {
+        fontWeight: '700',
+        letterSpacing: 1.1,
+    },
+    msCount: {
+        color: '#000'
+    },
+    msCountContainer: {
+        paddingRight: 12,
+    },
+    msOverviewContainer: {
+        flexDirection: 'row',
+        flexGrow: 1,
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        alignContent: 'center',
+        marginTop: 12,
+    },
     dotsMenu: {
         paddingRight: 6,
+        justifyContent: 'center',
+        width: 50,
     },
     tabs: {
         backgroundColor: '#fff',
@@ -154,19 +265,23 @@ const styles = StyleSheet.create({
     listRow: {
         flexDirection: 'row',
         flexGrow: 1,
-        justifyContent: 'space-evenly',
+        justifyContent: 'flex-end',
         alignItems: 'stretch',
-        paddingVertical: 2,
     },
     listDataCol: {
-        flexGrow: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         alignItems: 'flex-start',
-        paddingVertical: 6,
+        alignContent: 'flex-start',
+        paddingVertical: 12,
         paddingHorizontal: 12,
-        
     },
     evenRow: {
-        backgroundColor: '#EDEDED'
+        backgroundColor: 'rgba(240, 241, 245, 0.5)'
+    },
+    selectedRow: {
+        backgroundColor: theme.colors.secondary,
+    },
+    selectedRowText: {
+        color: '#fff',
     }
 })
