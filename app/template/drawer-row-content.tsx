@@ -8,6 +8,7 @@ import { useGlobalState } from "../global-state";
 import { Control, UseFormSetValue, useWatch } from "react-hook-form";
 import { CheckboxField } from "../../components/form-checkbox";
 import { AddButton } from "../../components/add-button";
+import { FormInput } from "../../components/form-input";
 
 export type DrawerRowContentProps = {
     theme: MD3Theme;
@@ -178,6 +179,12 @@ function RowConfig({
         control,
         name: `config.screens.${screenIndex}.rows.${index}.hasCopyNewBtn`,
     })
+    const maxFields = useWatch({
+        control,
+        name: `config.screens.${screenIndex}.rows.${index}.maxFields`,
+    })
+
+    console.log(`maxFields: ${maxFields}`)
 
     return (
         <View
@@ -235,6 +242,17 @@ function RowConfig({
                                         label="Has Copy New Button"
                                         labelStyle={styles.copyNewLabel}
                                         containerStyle={{ borderBottomWidth: 0, }}
+                                    />
+                                </View>
+                                <View style={styles.row}>
+                                    <FormInput
+                                        fieldName={`config.screens.${screenIndex}.rows.${index}.maxFields`}
+                                        label='Max Fields Per Row'
+                                        control={control}
+                                        keyboardType='numeric'
+                                        style={{ fontSize: 14, color: '#000' }}
+                                        onFieldChange={(field, text) => field.onChange(isNaN(Number(text)) || text?.length === 0 ? text : Number(text))}
+                                        onFieldBlur={(field, text) => field.onChange(Number(text) || 4)}
                                     />
                                 </View>
                             </NestableScrollContainer>

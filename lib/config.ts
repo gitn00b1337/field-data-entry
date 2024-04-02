@@ -121,8 +121,14 @@ export type FormRow = {
      * The id of the original form row if this is a copy
      */
     parentId: string;
-
+    /**
+     * Whether the row can be copied with a "add new" button
+     */
     hasCopyNewBtn: boolean;
+    /**
+     * The maximum fields per row before wrapping to the next row.
+     */
+    maxFields: number;
 }
 
 export type FormFieldConfig = {
@@ -167,11 +173,13 @@ export function createFormRow({
     copyIndex = 0,
     copyTrigger,
     hasCopyNewBtn = false,
+    maxFields = 4,
 }: {
     fields?: FormFieldConfig[];
     copyIndex?: number;
     copyTrigger?: string;
     hasCopyNewBtn?: boolean;
+    maxFields?: number;
 }): FormRow {
     return {
         id: generateUUID(),
@@ -179,6 +187,7 @@ export function createFormRow({
         groupId: '',
         parentId: '',
         hasCopyNewBtn,
+        maxFields,
     };
 }
 
@@ -310,10 +319,29 @@ export function createTrigger(screen: string): FormTrigger {
 export function createFormV2(config: FormConfig): FormEntryV2 {
     return {
         id: undefined, 
-        config,
+        config: fromLoadedConfig(config),
         values: createEntryValues(config),
         createdAt: moment().utc().toISOString(),
         updatedAt:  moment().utc().toISOString(),
+    };
+}
+
+function fromLoadedConfig(config: FormConfig) {
+    if (!config) {
+        return config;
+    }
+
+    return {
+        ...config,
+        screens: config.screens?.map(s => {
+            return {
+                ...s,
+                rows: s.rows?.map(r => ({
+                    ...r,
+                    maxFields: r.maxFields || 4,
+                })) || [],
+            }
+        }) || [],
     };
 }
 

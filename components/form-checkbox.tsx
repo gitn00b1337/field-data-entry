@@ -22,6 +22,7 @@ export function CheckboxField({
     control,
     label,
     containerStyle,
+    labelStyle,
     ...checkboxProps
 }: FormCheckboxProps) {
     const theme = useTheme();
@@ -69,11 +70,11 @@ export function CheckboxField({
                     paddingBottom: 0,
                     marginBottom: 0,
                 }} 
-                labelStyle={{
+                labelStyle={[{
                     paddingBottom: 4,
                     marginBottom: 0,
                     fontSize: 16,
-                }}
+                }, labelStyle]}
                 
             />           
         </View> 

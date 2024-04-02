@@ -1,22 +1,44 @@
-import { Control, Controller, Path, useController, useWatch } from "react-hook-form";
-import { StyleSheet,} from "react-native";
+import { Control, Controller, ControllerRenderProps, Path, } from "react-hook-form";
+import { NativeSyntheticEvent, StyleSheet, TextInputEndEditingEventData, } from "react-native";
 import { MD3Theme, TextInput, TextInputProps, useTheme } from "react-native-paper";
 import { FormEntryV2 } from "../lib/config";
 
-export type FormInputProps = {
+export type FormInputProps = TextInputProps & {
     fieldName: string;
     label: string;
     control: Control<FormEntryV2, any>;
-} & TextInputProps
+    onFieldChange?: (field: ControllerRenderProps<FormEntryV2, any>, text: string) => void
+    onFieldBlur?: (field: ControllerRenderProps<FormEntryV2, any>, text: string) => void
+} 
 
 export function FormInput({
     fieldName,
     label,
     control,
+    style,
+    onFieldChange,
+    onFieldBlur,
     ...textInputProps
 }: FormInputProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
+
+    function handleOnChange(field: ControllerRenderProps<FormEntryV2, any>, text: string) {
+        if (typeof onFieldChange === 'function') {
+            console.log(`onFieldChange: ${text}`)
+            onFieldChange(field, text);
+        }
+        else {
+            field.onChange(text)
+        }
+    }
+
+    function handleBlur(field: ControllerRenderProps<FormEntryV2, any>, e: NativeSyntheticEvent<TextInputEndEditingEventData>) {
+        if (typeof onFieldBlur === 'function') {
+            console.log(`onFieldBlur: ${e.nativeEvent.text}`)
+            onFieldBlur(field, e.nativeEvent.text);
+        }
+    }
     
     return (
         <Controller
@@ -26,12 +48,13 @@ export function FormInput({
             render={({ field, fieldState: { error }}) => (
                 <TextInput
                     label={label}
-                    value={field?.value as string}
-                    onChangeText={text => field.onChange(text)}
-                    style={styles.field}
+                    value={String(field?.value)}
+                    onChangeText={text => handleOnChange(field, text)}
+                    style={[styles.field, style]}
                     mode='flat'
                     outlineColor={theme.colors.outline}
                     textColor={theme.colors.onSurface}
+                    onEndEditing={(e) => handleBlur(field, e)}
                     {...textInputProps}
                 />
             )}

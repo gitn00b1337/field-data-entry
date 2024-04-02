@@ -59,9 +59,14 @@ export function FormEntryRow({
         onFieldPress(index, fieldIndex);
     } 
 
-    const flex: DimensionValue = fields.length > 0 
-        ? 100 / fields.length
-        : 1;
+    const maxFields = isNaN(Number(row.maxFields)) ? 4 : Number(row.maxFields) || 4;
+    const fieldCount = fields.length;
+    const rows = Math.ceil(fieldCount / maxFields);
+    const fieldsPerRow = Math.ceil(fieldCount / rows);
+
+    console.log(`fieldsPerRow: ${fieldsPerRow}`)
+
+    const width: DimensionValue = `${100 / fieldsPerRow}%`
 
     return (
         <>
@@ -76,7 +81,7 @@ export function FormEntryRow({
                                 onChange={(field, value) => onFieldChange(field, value)}
                                 isDisabled={isDesignMode}
                                 control={control}
-                                containerStyle={{ flex }}
+                                containerStyle={{ width, }}
                             />
                         ))
                     }
