@@ -1,6 +1,6 @@
 import { StyleSheet, View, } from "react-native";
 import { FormEntryV2, FormFieldConfig, FormRow, FormScreenConfig, } from "../../lib/config";
-import { Button, Text, MD3Theme, List, IconButton, useTheme, } from 'react-native-paper';
+import { Button, Text, MD3Theme, List, useTheme, } from 'react-native-paper';
 import React from 'react';
 import { NestableDraggableFlatList, NestableScrollContainer, RenderItemParams, } from "react-native-draggable-flatlist";
 import { DotsPopupMenu } from "../../components/dots-popup-menu";

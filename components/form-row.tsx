@@ -66,7 +66,7 @@ export function FormEntryRow({
 
     console.log(`fieldsPerRow: ${fieldsPerRow}`)
 
-    const width: DimensionValue = `${100 / fieldsPerRow}%`
+    const flexBasis: DimensionValue = `${100 / fieldsPerRow}%`
 
     return (
         <>
@@ -81,7 +81,7 @@ export function FormEntryRow({
                                 onChange={(field, value) => onFieldChange(field, value)}
                                 isDisabled={isDesignMode}
                                 control={control}
-                                containerStyle={{ width, }}
+                                containerStyle={{ flexBasis, }}
                             />
                         ))
                     }
@@ -112,6 +112,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignContent: 'stretch',
         alignItems: 'stretch',
         position: 'relative',
+        flex: 1
     },
     column: {
         flexDirection: 'column',

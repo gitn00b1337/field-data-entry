@@ -80,6 +80,9 @@ export function FormTallyField({
             name={name as Path<FormEntryV2>}
             render={({ field }) => (
                 <View style={{ flexGrow: 1, alignItems: 'flex-end', }}>
+                    <View style={styles.labelContainer}>
+                        <Text style={styles.label}>{ label || 'New Field' }</Text>
+                    </View>
                     <View style={{ flexGrow: 1,}} />
                     <View style={styles.container}>
                     <TouchableOpacity
@@ -121,6 +124,15 @@ export function FormTallyField({
 }
 
 const styles = StyleSheet.create({
+    labelContainer: {
+        position: 'absolute',
+        top: 8,
+        left: 16,
+        zIndex: -1,
+    },
+    label: {
+        fontSize: 12,
+    },
     leftBtn: {
         borderColor: '#DDD',
         justifyContent: 'center',
@@ -154,7 +166,9 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         flexDirection: 'row',   
         paddingBottom: 4, 
-        height: 35
+        height: 56,
+        paddingTop: 21,
+        paddingHorizontal: 6,
     },
     buttonStyle: {
         backgroundColor: 'white',

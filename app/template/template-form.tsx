@@ -438,6 +438,8 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignItems: 'stretch',
         alignContent: 'stretch',
         flexGrow: 1,
+        width: '70%',
+        marginHorizontal: 'auto'
     },
     formSection: {
         marginBottom: 12,
