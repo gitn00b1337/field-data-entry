@@ -10,6 +10,7 @@ import { WholeNumberField } from "./form-wholenumber-field";
 import { FormTimerButton } from "./form-timer-button";
 import { Control, Controller } from "react-hook-form";
 import { FormTallyField } from "./form-tally-field";
+import { FormPlaybackButton } from "./form-playback-button";
 
 export type FormFieldProps = {
     config: FormFieldConfig;
@@ -120,9 +121,8 @@ function FieldComponent(props : FieldComponentProps) {
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     container: {
-        paddingHorizontal: 12,
-        paddingVertical: 12,
-        flexGrow: 1,
+        // paddingHorizontal: 12,
+        flex: 1,
         position: 'relative',
     },
     sectionBtnContainer: {
@@ -136,14 +136,14 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignItems: 'stretch',
         justifyContent: 'space-evenly',
         alignContent: 'stretch',
-        columnGap: 12,
+        columnGap: 6,
     },
     formSectionBtn: {
         borderRadius: 5,
         backgroundColor: theme.colors.primary,
         borderWidth: 0,
         maxWidth: 150,
-        marginBottom: 12,
+        marginBottom: 6,
     },
     formSectionBtnLabel: {
         textTransform: 'uppercase',

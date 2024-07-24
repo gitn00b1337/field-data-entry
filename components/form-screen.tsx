@@ -19,6 +19,23 @@ export type FormScreenProps = {
     onSubmit: () => Promise<void>;
     onChangeScreen: (pageNumber: number) => void;
     form: UseFormReturn<FormEntryV2, any>;      
+    displayRowNumbers: boolean;
+}
+
+type ExtendedRow = FormRow & {
+    meta: RowMeta
+}
+
+type ExtendedRowResult = {
+    extendedRows: ExtendedRow[];
+    meta: {
+        groupRowIndex: number;
+    }
+}
+
+export type RowMeta = {
+    groupRowIndex: number;
+    isInGroup: boolean;
 }
 
 export function FormScreen({
@@ -30,6 +47,7 @@ export function FormScreen({
     onSubmit,
     onChangeScreen,
     form,
+    displayRowNumbers,
 }: FormScreenProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
@@ -41,12 +59,11 @@ export function FormScreen({
     const {
         fields: rowsArr,
         insert: insertRow,
+        remove: removeRow,
     } = useFieldArray({
         control: form.control,
         name: `config.screens.${screenIndex}.rows`,
     });
-
-    console.log(`FA ROWS: ${rowsArr.length}`)
 
     const screens = useWatch({
         control: form.control,
@@ -58,10 +75,7 @@ export function FormScreen({
         name: `config.screens.${screenIndex}.rows`
     });
 
-    const screen = form.watch(`config.screens.${screenIndex}`);
-
-    console.log(`WATCH ROWS: ${rows.length}`);
-    
+    const screen = form.watch(`config.screens.${screenIndex}`);    
     const isLastScreen = screens.length === (screenIndex + 1);
 
     if (!screen) {
@@ -75,7 +89,6 @@ export function FormScreen({
     }
 
     function handleFieldChange(field: FormFieldConfig, rowIndex: number) {
-        return;
         // handleTriggersOnFieldChange({
         //     form: form.getValues(),
         //     fieldKey: field.key,
@@ -131,6 +144,16 @@ export function FormScreen({
         insertRow(rowIndex + 1, newRow);
     }
 
+    function handleDeleteRow(rowIndex: number) {
+        const row = screen.rows[rowIndex];
+
+        if (isDesignMode || !row) {
+            return;
+        }
+
+        removeRow(rowIndex);
+    }
+
     async function handleNextPress() {
         if (isLastScreen) {
             try {
@@ -145,21 +168,60 @@ export function FormScreen({
             onChangeScreen(screenIndex + 1);
         }
     }
-    
+
+    // todo this should become part of field, needs a refactor
+    const { extendedRows } = rows.reduce<ExtendedRowResult>((data, row, index) => {
+        const prev = rows[index - 1];
+        const next = rows[index + 1];
+        const isInGroup = index === 0 
+            ? (next?.parentId === row.id)
+            : (prev?.id === row.parentId || (row.parentId && prev?.parentId === row.parentId));
+
+        const groupRowIndex = isInGroup ? data.meta.groupRowIndex + 1 : 0;
+
+        const extendedRows = [
+            ...data.extendedRows,
+            {
+                ...row,
+                meta: {
+                    groupRowIndex,
+                    isInGroup,
+                }
+            }
+        ];
+
+        return { extendedRows, meta: { groupRowIndex: groupRowIndex, } };
+    }, { extendedRows: [], meta: { groupRowIndex: 0 } });
+
     return (
-        <View style={{ flexGrow: 1, }}>            
+        <View style={{ flex: 1, justifyContent: 'center', }}>            
             <View style={styles.container}>            
-                <View style={{ marginBottom: 84, flexGrow: 1, }}>
+                <View style={{ marginBottom: 84, flex: 1,  }}>
                 {
-                    rows.map((row, rowIndex) => {
+                    extendedRows.map((row, rowIndex) => {
+                        // todo refactor this, need to extend field with meta data
                         const isFocused = rowIndex === selectedRowIndex;
                         const nextRow = screen.rows[rowIndex + 1];
-                        const prevRowSameIdOrParentId = nextRow?.parentId === row.id 
+                        const nextRowSameIdOrParentId = nextRow?.parentId === row.id 
                             || nextRow?.parentId === row.parentId;
                         const prevRowCopyRow = nextRow?.hasCopyNewBtn;
                         const showCopyBtn = row.hasCopyNewBtn 
-                            && !(prevRowSameIdOrParentId && prevRowCopyRow);
-                        
+                            && !(nextRowSameIdOrParentId && prevRowCopyRow);
+                        const prevRowSameIdOrParentId = row.parentId && (
+                            screen.rows[rowIndex - 1]?.parentId === row.parentId
+                            || screen.rows[rowIndex - 1]?.id === row.parentId
+                        );
+
+                        if (prevRowSameIdOrParentId) {
+                            console.log(`Parent: ${screen.rows[rowIndex - 1]?.parentId}`)
+                            console.log(`Row: ${row.parentId}`)
+                        }
+
+                        if (rowIndex > 0 && !screen.rows[rowIndex - 1]) {
+                            console.error('screen row missing!')
+                            console.log(screen.rows)
+                        }
+
                         return (
                             <FormEntryRow
                                 key={`screen${screenIndex}-row${rowIndex}`}
@@ -172,7 +234,11 @@ export function FormScreen({
                                 onFieldChange={(field, _) => handleFieldChange(field, rowIndex)}
                                 control={form.control}
                                 onCopyRow={(rowIndex) => handleCopyRow(rowIndex)}
+                                onDeleteRow={(rowIndex) => handleDeleteRow(rowIndex)}
                                 screenIndex={screenIndex}
+                                canDeleteRow={prevRowSameIdOrParentId}
+                                displayRowNumbers={displayRowNumbers}    
+                                meta={row.meta}                            
                                 CopyButton={
                                     <>
                                      {
@@ -201,7 +267,8 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     rowButtonsContainer: {
         justifyContent: 'center',
         alignItems: 'flex-end',
-        paddingRight: 12
+        paddingRight: 12,
+        marginBottom: 6,
     },
     pageBtnContainer: {
         justifyContent: 'space-between',
@@ -223,8 +290,8 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         fontWeight: '900',
     },
     container: {
-        flexGrow: 1,
-        maxWidth: 1200,
+        flex: 1,
+        // maxWidth: 1200,
         paddingHorizontal: 24,
     },
     sectionBtnContainer: {

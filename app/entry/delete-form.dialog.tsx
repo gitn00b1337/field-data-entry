@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { Icon, Modal, Portal, Text } from "react-native-paper";
+import { Icon, Modal, Portal, Text, useTheme } from "react-native-paper";
 import { NavButton } from "../../components/nav-button";
 import { useRouter } from "expo-router";
 
@@ -15,6 +15,7 @@ export function DeleteFormDialog({
     onDelete,
 }: DeleteFormDialogProps) {
     const router = useRouter();
+    const theme = useTheme();
     
     return (
         <Portal>
@@ -24,6 +25,7 @@ export function DeleteFormDialog({
                         <Icon
                             source='alert-outline' 
                             size={48}        
+                            color={theme.colors.tertiary}
                         />
                     </View>
                     <Text style={styles.heading}>
@@ -59,7 +61,6 @@ const styles = StyleSheet.create({
         paddingTop: 36,
         justifyContent: 'center',
         alignItems: 'center',
-        flexDirection: 'row',
     },
     headingIcon: {
         paddingRight: 12,
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
     },
     textContainer: {
         paddingHorizontal: 12,
-        paddingVertical: 48,
+        paddingVertical: 24,
         justifyContent: 'center'
     },
     text: {

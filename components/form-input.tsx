@@ -54,6 +54,7 @@ export function FormInput({
                     mode='flat'
                     outlineColor={theme.colors.outline}
                     textColor={theme.colors.onSurface}
+                    underlineColor={theme.colors.outlineVariant}
                     onEndEditing={(e) => handleBlur(field, e)}
                     {...textInputProps}
                 />

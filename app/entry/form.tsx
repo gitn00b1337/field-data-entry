@@ -1,16 +1,16 @@
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
-import { FormEntryV2, FormRow } from "../../lib/config";
+import { useState } from "react";
+import { FormEntryV2, createFieldEntry } from "../../lib/config";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
 import { ActivityIndicator, Text, useTheme } from "react-native-paper";
 import { ScrollView, View, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { DataCollectionForm } from "../../components/data-collection-form";
-import { ScreenNavigator } from "./_screen-navigator";
 import { deleteEntry, saveEntry } from "../../lib/database";
 import { exportForm } from "../../lib/form-export";
 import { DiscardFormDialog } from "./discard-dialog";
 import { DeleteFormDialog } from "./delete-form.dialog";
+import moment from "moment";
 
 export type LoadingState = 'LOADING' | 'ERROR' | 'LOADED';
 
@@ -86,6 +86,54 @@ export function EntryForm({
         }
     }
 
+    async function handleCopyEntry(values: FormEntryV2) {
+        const vals = {
+            ...values,
+            id: entry?.id || entryId,
+        };
+
+        const id = await saveEntry(vals);
+
+        if (!id) {
+            setEntryId(id);
+        }
+
+        const copyValues: FormEntryV2 = {
+            ...values,
+            id: undefined,
+            createdAt:  moment().toISOString(),
+            updatedAt: moment().toISOString(),
+            config: {
+                ...values.config,
+            },
+            values: {}
+        };
+
+        for (const screen of copyValues.config.screens) {
+            for (const row of screen.rows) {
+                for (const field of row.fields) {
+                    const value =  values?.values[field.entryKey];
+
+                    if (field.persistsCopy) {
+                        copyValues.values[field.entryKey] = value;
+                    } else {
+                        console.log(`Skipping copy of field ${field.name}`);
+                        console.log(field.persistsCopy)
+                        copyValues.values[field.entryKey] = createFieldEntry(field.defaultValue);
+                    }
+                }
+            }
+        }
+
+        const copyId = await saveEntry(copyValues);
+        console.log(`Navigating to new entry ${copyId}`);
+        router.push(`/entry/${copyId}`);        
+    }
+
+    function handleDiscardPress(isDirty: boolean) {
+        setShowLeaveDialog(true);
+    }
+
     return (
         <>
         <DiscardFormDialog
@@ -136,10 +184,11 @@ export function EntryForm({
                                     isDesignMode={false}
                                     initialValues={entry}
                                     onSubmit={handleSubmit}
-                                    onDiscardPress={() => setShowLeaveDialog(true)}
+                                    onDiscardPress={handleDiscardPress}
                                     onDeleteFormPress={() => setShowDeleteFormDialog(true)}
                                     onExportForm={handleExportForm}
                                     onChangeScreen={setScreenIndex}
+                                    onCopyEntry={handleCopyEntry}
                                 />
                             )
                         }

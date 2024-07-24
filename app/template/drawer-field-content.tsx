@@ -1,6 +1,6 @@
 import { NativeSyntheticEvent, StyleSheet, TextInputEndEditingEventData, View, } from "react-native";
 import { FormEntryV2, FormFieldOptionConfig, FormFieldType, createFieldOption, } from "../../lib/config";
-import { Button, Text, MD3Theme, IconButton,  } from 'react-native-paper';
+import { Button, Text, MD3Theme, IconButton, } from 'react-native-paper';
 import React, { useEffect, useState } from 'react';
 import { FormSelectField } from "../../components/form-select";
 import { FormInput } from "../../components/form-input";
@@ -55,8 +55,9 @@ export function DrawerFieldContent({
     const defaultField = useWatch({
         control,
         name: `config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}.defaultValue`
-    });    
-    
+    });
+    console.log(`${name}`)
+
     const {
         fields: options,
         remove: removeOption,
@@ -65,7 +66,7 @@ export function DrawerFieldContent({
     } = useFieldArray({
         control,
         name: `config.screens.${screenIndex}.rows.${rowIndex}.fields.${fieldIndex}.options`
-    }); 
+    });
 
     const optionsArr = useWatch({
         control,
@@ -80,7 +81,7 @@ export function DrawerFieldContent({
                 </View>
             </View>
         )
-    } 
+    }
 
     function handleAddOption() {
         const newOption = createFieldOption();
@@ -95,7 +96,7 @@ export function DrawerFieldContent({
         const option = fieldConfig.options && fieldConfig.options[optionIndex];
         const value = e.nativeEvent?.text;
         const isSelect = fieldConfig.type === 'SELECT';
-        const missingDefault = !fieldConfig.options?.find(op => op.value === fieldConfig.defaultValue); 
+        const missingDefault = !fieldConfig.options?.find(op => op.value === fieldConfig.defaultValue);
 
         // requested feature: if its a select, set the value as the label 
         // but keep it overwritable. think will need to also check if touched v2 TODO.
@@ -117,155 +118,176 @@ export function DrawerFieldContent({
 
     return (
         <View style={styles.navContainer}>
-            <View style={styles.breadcrumbContainer}>
-                <Button
-                    icon="chevron-left"
-                    onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW')}
-                >
-                    Rows
-                </Button>
+            <View style={{ flex: 1, flexDirection: 'column', }}>
+                <View style={styles.breadcrumbContainer}>
+                    <Button
+                        icon="chevron-left"
+                        onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW')}
+                    >
+                        Rows
+                    </Button>
+                </View>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>Edit Field</Text>
+                    <DotsPopupMenu
+                        actions={[
+                            { key: 'delete', label: 'Delete', onPress: () => onDeleteField(fieldIndex) }
+                        ]}
+                    />
+                </View>
             </View>
-            <View style={styles.titleContainer}>
-                <Text style={styles.title}>Edit Field</Text>
-                <DotsPopupMenu
-                    actions={[
-                        { key: 'delete', label: 'Delete', onPress: () => onDeleteField(fieldIndex) }
-                    ]}
-                />
-            </View>
-            {
-                fieldConfig && (
-                    <>
-                        <View style={{ width: '100%' }}>
-                            <View style={styles.row}>
-                                <FormInput
-                                    fieldName={`${name}.label`}
-                                    label={'Label'}
-                                    control={control}
-                                />
-                            </View>
-                            <View style={[styles.row]}>
-                                <FormSelectField
-                                    fieldName={`${name}.type`}
-                                    label='Field Type'
-                                    options={typeOptions}
-                                    control={control}
-                                />
-                            </View>
-                            <View style={{ paddingLeft: 12, }}>
-                            {
-                                fieldConfig.type === 'SELECT' && (
+            <View style={styles.formContainer}>
+                {
+                    fieldConfig && (
+                        <>
+                            <View style={{ flex: 1, }}>
+                                <View style={styles.row}>
+                                    <FormInput
+                                        fieldName={`${name}.label`}
+                                        label={'Label'}
+                                        control={control}
+                                    />
+                                </View>
+                                <View style={[styles.row]}>
+                                    <FormSelectField
+                                        fieldName={`${name}.type`}
+                                        label='Field Type'
+                                        options={typeOptions}
+                                        control={control}
+                                    />
+                                </View>
+                                <View style={{ paddingLeft: 12, }}>
+                                    {
+                                        fieldConfig.type === 'SELECT' && (
+                                            <CheckboxField
+                                                control={control}
+                                                name={`${name}.multiSelect`}
+                                                isDisabled={false}
+                                                label="Multiple Choice"
+                                                labelStyle={styles.isMultiSelectLabel}
+                                                containerStyle={{ borderBottomWidth: 0, }}
+                                            />
+                                        )
+                                    }
+                                </View>
+                                {
+                                    fieldConfig.type === 'SELECT' && (
+                                        <View style={styles.options}>
+                                            <View style={styles.optionsHeader}>
+                                                <Text style={styles.optionsHeaderText}>Dropdown Options</Text>
+                                            </View>
+                                            {
+                                                options?.map((option, opIndex) => {
+                                                    const opName = `${name}.options[${opIndex}]`;
+                                                    const isDefault = option.value === defaultField && option.value !== '';
+                                                    const selectedIconStyle = isDefault && styles.activeDefaultIcon;
+
+                                                    return (
+                                                        <View style={styles.optionRow} key={option.id}>
+                                                            <View style={styles.optionEntryContainer}>
+                                                                <FormInput
+                                                                    fieldName={`${opName}.label`}
+                                                                    label='Label'
+                                                                    onEndEditing={e => handleFieldLabelBlur(e, opIndex)}
+                                                                    control={control}
+                                                                />
+                                                            </View>
+                                                            <View style={styles.optionEntryContainer}>
+                                                                <FormInput
+                                                                    fieldName={`${opName}.value`}
+                                                                    label='Value'
+                                                                    control={control}
+                                                                />
+                                                            </View>
+                                                            <View style={styles.defaultIconContainer}>
+                                                                <IconButton
+                                                                    icon={isDefault ? 'star' : 'star-outline'}
+                                                                    onPress={() => setDefaultValue(option.value)}
+                                                                    style={[styles.defaultIcon, selectedIconStyle]}
+                                                                />
+                                                            </View>
+                                                            <View style={styles.dotsMenu}>
+                                                                <DotsPopupMenu
+                                                                    actions={[
+                                                                        { key: 'delete', label: 'Delete', onPress: () => removeOption(opIndex) }
+                                                                    ]}
+                                                                />
+                                                            </View>
+                                                        </View>
+                                                    )
+                                                })
+                                            }
+                                            <View style={styles.addOptionContainer}>
+                                                <AddButton
+                                                    onPress={handleAddOption}
+                                                    label="Add Option"
+                                                    style={{ width: 150, maxWidth: 150 }}
+                                                />
+                                            </View>
+                                        </View>
+                                    )
+                                }
+                                <View style={{ paddingLeft: 0, }}>
                                     <CheckboxField
                                         control={control}
-                                        name={`${name}.multiSelect`}
+                                        name={`${name}.persistsCopy`}
                                         isDisabled={false}
-                                        label="Multiple Choice"
-                                        labelStyle={styles.isMultiSelectLabel}
-                                        containerStyle={{ borderBottomWidth: 0, }}
+                                        label="Persists On Partial Entry Copy"
+                                        labelStyle={styles.persistsCopyLabel}
+                                        containerStyle={{ borderBottomWidth: 0, marginBottom: 0, }}
                                     />
-                                )
-                            }
+                                </View>
                             </View>
-                            {
-                                fieldConfig.type === 'SELECT' && (
-                                    <View style={styles.options}>
-                                        <View style={styles.optionsHeader}>
-                                            <Text style={styles.optionsHeaderText}>Dropdown Options</Text>
-                                        </View>
-                                        {
-                                            options?.map((option, opIndex) => {
-                                                const opName = `${name}.options[${opIndex}]`;
-                                                const isDefault = option.value === defaultField && option.value !== '';
-                                                const selectedIconStyle = isDefault && styles.activeDefaultIcon;
-
-                                                return (
-                                                    <View style={styles.optionRow} key={option.id}>
-                                                        <View style={styles.optionEntryContainer}>
-                                                            <FormInput
-                                                                fieldName={`${opName}.label`}
-                                                                label='Label'
-                                                                onEndEditing={e => handleFieldLabelBlur(e, opIndex)}
-                                                                control={control}
-                                                            />
-                                                        </View>
-                                                        <View style={styles.optionEntryContainer}>
-                                                            <FormInput
-                                                                fieldName={`${opName}.value`}
-                                                                label='Value'
-                                                                control={control}
-                                                            />
-                                                        </View>
-                                                        <View style={styles.defaultIconContainer}>
-                                                            <IconButton
-                                                                icon={isDefault ? 'star' : 'star-outline'}
-                                                                onPress={() => setDefaultValue(option.value)}
-                                                                style={[ styles.defaultIcon, selectedIconStyle ]}
-                                                            />
-                                                        </View>
-                                                        <View style={styles.dotsMenu}>
-                                                            <DotsPopupMenu                                
-                                                                actions={[
-                                                                    { key: 'delete', label: 'Delete', onPress: () => removeOption(opIndex) }
-                                                                ]}
-                                                            />
-                                                        </View>
-                                                    </View>
-                                                )
-                                            })
-                                        }
-                                        <View style={styles.addOptionContainer}>
-                                            <AddButton 
-                                                onPress={handleAddOption} 
-                                                label="Add Option"
-                                                style={{ width: 150, maxWidth: 150 }}
-                                            />
-                                        </View>
-                                    </View>
-                                )
-                            }
+                        </>
+                    )
+                }
+                {
+                    !fieldConfig && (
+                        <View style={styles.row}>
+                            <Text style={styles.noSelectionText}>No field selected.</Text>
                         </View>
-                    </>
-                )
-            }
-            {
-                !fieldConfig && (
-                    <View style={styles.row}>
-                        <Text style={styles.noSelectionText}>No field selected.</Text>
-                    </View>
-                )
-            }
+                    )
+                }
+            </View>
         </View>
     )
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    formContainer: {
+        backgroundColor: '#fff',
+        flex: 1,
+        marginHorizontal: 24,
+        padding: 12,
+        borderRadius: theme.roundness,
+    },
+    persistsCopyLabel: {
+        color: '#000',
+        fontWeight: 'normal',
+        fontFamily: theme.fonts.default.fontFamily,
+        fontSize: 14,
+    },
     isMultiSelectLabel: {
         color: '#000',
         fontWeight: 'normal',
         fontFamily: theme.fonts.default.fontFamily,
         fontSize: 14,
     },
-    title:{
+    title: {
         fontSize: 20,
         fontWeight: '700',
         marginBottom: 24,
         flexGrow: 1,
     },
     titleContainer: {
-        paddingLeft: 16,
+        paddingLeft: 24,
         flexDirection: 'row',
-    },
-    sectionTitleContainer: {
-        paddingLeft: 16,
-        marginBottom: 12,
-    },
-    sectionTitle: {
-        fontWeight: '700',
-        letterSpacing: 1,
+        flex: 1,
     },
     breadcrumbContainer: {
         justifyContent: 'center',
         alignItems: 'flex-start',
+        flex: 1,
     },
     dotsMenu: {
         flexGrow: 0,
@@ -284,7 +306,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         flexGrow: 1,
     },
     activeDefaultIcon: {
-        
+
     },
     defaultIcon: {
         padding: 0,
@@ -330,7 +352,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignContent: 'stretch',
         alignItems: 'stretch',
         flexDirection: 'row',
-    },    
+    },
     addOptionContainer: {
         width: '100%',
         justifyContent: 'center',
@@ -346,10 +368,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         paddingHorizontal: 12,
     },
     navContainer: {
-        flexGrow: 1,
-        alignContent: 'flex-start',
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
+        flex: 1,
         flexDirection: 'column',
     },
     row: {
@@ -357,13 +376,12 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         justifyContent: 'flex-start',
         alignItems: 'stretch',
         alignContent: 'stretch',
-        paddingHorizontal: 16,
         display: 'flex',
         marginBottom: 12,
     },
     noSelectionText: {
         paddingLeft: 24,
-    },    
+    },
     header: {
         fontWeight: '700',
         flexGrow: 1,

@@ -42,10 +42,11 @@ export function DrawerScreenContent({
                         Screens
                     </Text>
                 </View>
+                <View style={styles.formContainer}>
                 {
                     screens.map((screen, index) => (
                         <View 
-                            key={screen.key}
+                            key={`screen-${index}`}
                             style={{ ...styles.row, ...styles.screenRow, ...(screenIndex === index ? styles.activeRow : {}) }}
                         >
                             <TouchableOpacity
@@ -71,6 +72,7 @@ export function DrawerScreenContent({
                         </View>
                     ))
                 }
+                </View>
                 <View style={styles.row}>
                     <View style={{ flexGrow: 1, alignItems: 'center', paddingVertical: 12, }}>
                         <AddButton 
@@ -86,8 +88,14 @@ export function DrawerScreenContent({
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    formContainer: {
+        backgroundColor: '#fff',
+        marginHorizontal: 24,
+        padding: 12,
+        borderRadius: theme.roundness,
+    },
     addScreenBtn: {
-        backgroundColor: theme.colors.primary,
+        // backgroundColor: theme.colors.primary,
     },
     navContainer: {
         flexGrow: 1,
@@ -104,7 +112,6 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         justifyContent: 'flex-start',
         alignItems: 'stretch',
         alignContent: 'stretch',
-        paddingHorizontal: 12,
     },
     screenRow: {
         paddingLeft: 12,

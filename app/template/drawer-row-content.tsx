@@ -9,6 +9,7 @@ import { Control, UseFormSetValue, useWatch } from "react-hook-form";
 import { CheckboxField } from "../../components/form-checkbox";
 import { AddButton } from "../../components/add-button";
 import { FormInput } from "../../components/form-input";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 export type DrawerRowContentProps = {
     theme: MD3Theme;
@@ -96,7 +97,7 @@ export function DrawerRowContent({
     }
 
     return (
-        <View style={{ flexGrow: 1, }}>
+        <View style={{ flexGrow: 1, backgroundColor: theme.colors.surface, }}>
             <View style={styles.breadcrumbContainer}>
                 <Button
                     icon="chevron-left"
@@ -105,18 +106,32 @@ export function DrawerRowContent({
                     Screens
                 </Button>
             </View>
+            <View style={{ flex: 1, }}>
             <View style={styles.titleContainer}>
                 <Text style={styles.title}>{`Screen ${screenIndex + 1}`}</Text>
             </View>
-            <View style={styles.sectionTitleContainer}>
-                <Text style={styles.sectionTitle}>
-                    Rows
-                </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24, marginBottom: 12, }}>
+                <View style={styles.sectionTitleContainer}>
+                    <Text style={styles.sectionTitle}>
+                        Rows
+                    </Text>                
+                </View>
+                <TouchableOpacity  
+                    onPress={onAddRow} 
+                >
+                    <Text style={{ fontSize: 12, color: theme.colors.primary }}>Add Row</Text>
+                </TouchableOpacity>
             </View>
+            <View style={{
+                backgroundColor: '#fff',
+                borderRadius: theme.roundness,
+                overflow: 'hidden',
+                marginHorizontal: 24,
+            }}>
             {
                 rows.map((row, index) => (
                     <RowConfig
-                        key={row.id}
+                        key={`row-${index}`}
                         row={row}
                         index={index}
                         control={control}
@@ -131,14 +146,9 @@ export function DrawerRowContent({
                     />
                 ))
             }
-            <View style={[styles.row]}>
-                <View style={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 16 }}>
-                    <AddButton 
-                        onPress={onAddRow} 
-                        label="Add Row"
-                    />
-                </View>
             </View>
+            </View>
+            
         </View>
     )
 }
@@ -182,9 +192,7 @@ function RowConfig({
     const maxFields = useWatch({
         control,
         name: `config.screens.${screenIndex}.rows.${index}.maxFields`,
-    })
-
-    console.log(`maxFields: ${maxFields}`)
+    });
 
     return (
         <View
@@ -212,47 +220,57 @@ function RowConfig({
                     {
                         index === selectedRowIndex && selectedRow.fields && (
                             <NestableScrollContainer contentContainerStyle={styles.navContainer}>
-                                <NestableDraggableFlatList
-                                    style={{ flex: undefined, flexGrow: 0, }}
-                                    contentContainerStyle={{ flex: undefined, flexGrow: 0, }}
-                                    containerStyle={{ flexGrow: 0, flex: undefined, width: '100%' }}
-                                    data={selectedRow.fields}
-                                    onDragEnd={({ from, to }) => onMoveField(from, to)}
-                                    keyExtractor={(_, fieldIndex) => `row${selectedRowIndex}-fieldconfig${fieldIndex}`}
-                                    renderItem={props => renderItem({ 
-                                        ...props, 
-                                        onEditFieldPress,
-                                        theme,
-                                    })}
-                                />
-                                <View style={[styles.row, { flexDirection: 'column'}]}>
-                                    <View style={styles.addFieldDivider} />
-                                    <View style={styles.addFieldContainer}>
-                                        <AddButton 
-                                            onPress={onAddField} 
-                                            label="Add Field"
-                                        />
-                                    </View>
-                                </View>
                                 <View style={[styles.row]}>
                                     <CheckboxField
                                         control={control}
                                         name={`config.screens.${screenIndex}.rows.${index}.hasCopyNewBtn`}
                                         isDisabled={false}
-                                        label="Has Copy New Button"
+                                        label="Enable Copy Button"
                                         labelStyle={styles.copyNewLabel}
-                                        containerStyle={{ borderBottomWidth: 0, }}
+                                        containerStyle={{ borderBottomWidth: 0, marginBottom: 0, }}
                                     />
                                 </View>
                                 <View style={styles.row}>
-                                    <FormInput
-                                        fieldName={`config.screens.${screenIndex}.rows.${index}.maxFields`}
-                                        label='Max Fields Per Row'
-                                        control={control}
-                                        keyboardType='numeric'
-                                        style={{ fontSize: 14, color: '#000' }}
-                                        onFieldChange={(field, text) => field.onChange(isNaN(Number(text)) || text?.length === 0 ? text : Number(text))}
-                                        onFieldBlur={(field, text) => field.onChange(Number(text) || 4)}
+                                    <View style={{  flex: 1, flexDirection: 'row', paddingLeft: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 12, }}>
+                                        <View style={{ flex: 1, }}>
+                                            <Text>Max Fields Per Row</Text>
+                                        </View>
+                                        <View style={{ width: 50 }}>
+                                            <FormInput
+                                                fieldName={`config.screens.${screenIndex}.rows.${index}.maxFields`}
+                                                label=''
+                                                control={control}
+                                                keyboardType='numeric'
+                                                style={{ fontSize: 14, color: '#000', paddingLeft: 0,  }}
+                                                onFieldChange={(field, text) => field.onChange(isNaN(Number(text)) || text?.length === 0 ? text : Number(text))}
+                                                onFieldBlur={(field, text) => field.onChange(Number(text) || 4)}
+                                                // underlineColor={'#fff'}
+                                            />
+                                        </View>
+                                        
+                                    </View>
+                                </View>
+                                <View style={{ flexDirection: 'row', justifyContent:'space-between', flex: 1, marginBottom: 12, paddingLeft: 0 }}>
+                                    <View style={styles.subHeaderContainer}>
+                                        <Text style={styles.subHeader}>Row Fields</Text>
+                                    </View>
+                                    <TouchableOpacity onPress={onAddField}>
+                                        <Text style={{ fontSize: 12, color: theme.colors.primary }}>Add Field</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={{ flex: 1, paddingLeft: 8, marginBottom: 12,}}>
+                                    <NestableDraggableFlatList
+                                        style={{ flex: undefined, flexGrow: 0, }}
+                                        contentContainerStyle={{ flex: undefined, flexGrow: 0, }}
+                                        containerStyle={{ flexGrow: 0, flex: undefined, width: '100%' }}
+                                        data={selectedRow.fields}
+                                        onDragEnd={({ from, to }) => onMoveField(from, to)}
+                                        keyExtractor={(_, fieldIndex) => `row${selectedRowIndex}-fieldconfig${fieldIndex}`}
+                                        renderItem={props => renderItem({ 
+                                            ...props, 
+                                            onEditFieldPress,
+                                            theme,
+                                        })}
                                     />
                                 </View>
                             </NestableScrollContainer>
@@ -285,11 +303,10 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         marginBottom: 24,
     },
     titleContainer: {
-        paddingLeft: 16,
+        paddingLeft: 24,
     },
     sectionTitleContainer: {
-        paddingLeft: 16,
-        marginBottom: 12,
+        
     },
     sectionTitle: {
         fontWeight: '700',
@@ -344,10 +361,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     },
 
     navContainer: {
-        flexGrow: 1,
-        alignContent: 'flex-start',
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
+        flex: 1,
         flexDirection: 'column',
     },
     addFieldBtn: {
@@ -359,11 +373,12 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     },
     addFieldContainer: {
         flexDirection: 'row',
-        flexGrow: 1,
+        flex: 1,
         alignContent: 'center',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingLeft: 2,
+        paddingTop: 12,
+        paddingBottom: 12,
     },
     addFieldDivider: {
         marginHorizontal: 'auto',
@@ -372,31 +387,21 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignSelf: 'center',
         marginTop: 12,
     },
-    addFieldBtnContent: {
-        paddingVertical: 0,
-        marginVertical: 0,
-        paddingTop: 0,
-        justifyContent: 'flex-start',
-        paddingLeft: 0,
-    },
-    addFieldBtnText: {
-        paddingVertical: 0,
-        marginVertical: 0,
-        paddingTop: 0,
-        color: '#000',
-        fontWeight: 'normal',
-        fontFamily: theme.fonts.default.fontFamily,
-        fontSize: 14,
-        paddingLeft: 0,
-        marginLeft: 0,
-    },
     row: {
-        width: '100%',
+        flex: 1,
         flexDirection: 'row',
         justifyContent: 'flex-start',
         alignItems: 'stretch',
         alignContent: 'stretch',
+        paddingLeft: 8,
         // paddingHorizontal: 12,
+    },
+    subHeader: {
+        fontWeight: '700',
+        fontSize: 12,
+    },
+    subHeaderContainer: {
+        paddingLeft: 24
     },
     header: {
         fontWeight: '700',
@@ -417,7 +422,6 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         borderBottomWidth: 1,
         borderColor: theme.colors.outline,
         paddingVertical: 0,
-        paddingLeft: 12,
     },
     firstAccordionContainer: {
         borderTopWidth: 1,
@@ -428,6 +432,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         margin: 0,
         color: '#000',
         fontSize: 14,
+        fontWeight: 'bold'
     },
     accordionDescription: {
         padding: 0,

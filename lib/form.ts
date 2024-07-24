@@ -29,6 +29,8 @@ export function sanitizeConfig(config: FormConfig): FormConfig {
 
             for (const field of row.fields) {
                 field.id = field.id || generateUUID();
+                field.exportable = typeof field.exportable === 'undefined' ? true : field.exportable;
+                field.persistsCopy = typeof field.persistsCopy === 'undefined'? true : field.persistsCopy;
             }
         }
     }

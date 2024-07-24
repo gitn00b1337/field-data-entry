@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { Button, Icon, Modal, Portal, Text } from "react-native-paper";
+import { Button, Icon, Modal, Portal, Text, useTheme } from "react-native-paper";
 import { NavButton } from "../../components/nav-button";
 import { useRouter } from "expo-router";
 
@@ -13,14 +13,10 @@ export function DiscardFormDialog({
     onHideModal,
 }: DiscardFormDialogProps) {
     const router = useRouter();
+    const theme = useTheme();
     
     function handleDiscard() {
-        if (router.canGoBack()) {
-            router.back();
-        }
-        else {
-            router.replace('/')
-        }
+        router.replace('/');
     }
     
     return (
@@ -31,14 +27,15 @@ export function DiscardFormDialog({
                         <Icon
                             source='alert-outline' 
                             size={48}        
+                            color={theme.colors.tertiary}
                         />
                     </View>
                     <Text style={styles.heading}>
-                        Discarding Changes
+                        Quit Data Entry
                     </Text>
                 </View>
                 <View style={styles.textContainer}>
-                    <Text style={styles.text}>Are you sure you want to discard the changes to this entry?</Text>
+                    <Text style={styles.text}>Any unsaved changes will be discarded</Text>
                 </View>
                 <View style={styles.buttonsContainer}>
                     <NavButton 
@@ -66,7 +63,7 @@ const styles = StyleSheet.create({
         paddingTop: 36,
         justifyContent: 'center',
         alignItems: 'center',
-        flexDirection: 'row',
+        flexDirection: 'column',
     },
     headingIcon: {
         paddingRight: 12,
@@ -83,7 +80,7 @@ const styles = StyleSheet.create({
     },
     textContainer: {
         paddingHorizontal: 12,
-        paddingVertical: 48,
+        paddingVertical: 24,
         justifyContent: 'center'
     },
     text: {

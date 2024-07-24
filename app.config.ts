@@ -26,7 +26,7 @@ export default {
         permissions: [
             "android.permission.RECORD_AUDIO"
         ],
-        versionCode: 3
+        versionCode: 5
     },
     plugins: [
         [

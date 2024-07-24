@@ -7,7 +7,9 @@ import { FormTimerButton, } from "./form-timer-button";
 import { Stack, useRouter } from "expo-router";
 import { NavButton } from "./nav-button";
 import { DotsPopupMenu } from "./dots-popup-menu";
-import { Control, useWatch, } from "react-hook-form";
+import { Control, Form, useWatch, } from "react-hook-form";
+import { HeaderTitle } from "./header-title";
+import { FormPlaybackButton } from "./form-playback-button";
 
 export type FormGlobalButtonsProps = {
     control: Control<FormEntryV2, any>;
@@ -21,6 +23,7 @@ export type FormGlobalButtonsProps = {
     onChangeScreen: (newIndex: number) => void;
     screenCount: number;
     onSubmit: () => void;
+    onCopyEntry: () => void;
 }
 
 export function FormGlobalButtons({
@@ -35,6 +38,7 @@ export function FormGlobalButtons({
     screenIndex,
     screenCount,
     onSubmit,
+    onCopyEntry,
 }: FormGlobalButtonsProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
@@ -96,32 +100,62 @@ export function FormGlobalButtons({
         }
     }
 
+    function getDropdownActions() {
+        let actions = [
+            { key: 'dpm_discard', label: 'Quit', onPress: onDiscardForm, },
+        ]
+
+        if (!isDesignMode) {
+            actions.push(
+                { key: 'dmp_copy', label: 'Copy Entry', onPress: onCopyEntry },
+            );
+        }
+
+        return [
+            ...actions,
+            { key: 'dpm_export', label: 'Export', onPress: onExportForm, hasDivider: true, },
+            { key: 'dpm_delete', label: `Delete ${isDesignMode ? 'Template' : 'Form'}`, onPress: onDeleteForm, },
+        ];        
+    }
+
+    const dropdownActions = getDropdownActions();
+
     return (
         <View style={styles.positioner}>
             <Stack.Screen
                 options={{
+                    headerTitle: () => <HeaderTitle onLogoPress={onDiscardForm} />,
                     headerRight: () => (
                         <View style={styles.headerButtonsContainer}>
                             {
-                                headerFields.map((f, i) => (
-                                    <FormTimerButton
-                                        key={f.key}
-                                        position={f.position}
-                                        label={f.label}
-                                        control={control}
-                                        entryKey={f.entryKey}
-                                        name={f.name}
-                                    />
-                                ))
+                                headerFields.map((f, i) => {
+                                    if (f.type === 'PLAYBACK_BUTTON') {
+                                        return (
+                                            <FormPlaybackButton
+                                                key={`playback-button-${i}`}
+                                                position={f.position}
+                                                label={f.label}
+                                                filePath={f.filePath}
+                                             />
+                                        )
+                                    } else {
+                                        return (
+                                            <FormTimerButton
+                                                key={f.key}
+                                                position={f.position}
+                                                label={f.label}
+                                                control={control}
+                                                entryKey={f.entryKey}
+                                                name={f.name}
+                                            />
+                                        )
+                                    }                                    
+                                })
                             }
                             <NavButton text='Save' onPress={onSubmitForm} />
                             <DotsPopupMenu
                                 iconColor="#fff" 
-                                actions={[
-                                    { key: 'dpm_discard', label: 'Quit', onPress: onDiscardForm, },
-                                    { key: 'dpm_export', label: 'Export', onPress: onExportForm, hasDivider: true, },
-                                    { key: 'dpm_delete', label: `Delete ${isDesignMode ? 'Template' : 'Form'}`, onPress: onDeleteForm, },
-                                ]}
+                                actions={dropdownActions}
                             />
                         </View>
                     )
@@ -146,16 +180,31 @@ export function FormGlobalButtons({
                 </View>
                 <View style={styles.globalBtnsContainer}>
                 {
-                    buttonFields.map((f, fi) => (
-                        <FormTimerButton
-                            key={`${f.key}`}
-                            entryKey={f.entryKey}
-                            position={f.position}
-                            label={f.label}
-                            control={control}
-                            name={f.name}
-                        />
-                    ))
+                    buttonFields.map((f, fi) => {
+                        if (f.type === 'TIMER') {
+                            return (
+                                <FormTimerButton
+                                    key={`timer-${f.entryKey}`}
+                                    entryKey={f.entryKey}
+                                    position={f.position}
+                                    label={f.label}
+                                    control={control}
+                                    name={f.name}
+                                />
+                            )
+                        } else if (f.type === 'PLAYBACK_BUTTON') {
+                            return (
+                                <FormPlaybackButton
+                                    key={`pb-${f.entryKey}`}
+                                    position={f.position}
+                                    label={f.label}
+                                    filePath={f.filePath}
+                                 />
+                             )
+                        }
+
+                        return null;
+                    })
                 }
                 </View>
                 <View style={styles.finishBtnContainer}>

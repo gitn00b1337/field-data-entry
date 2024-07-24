@@ -5,22 +5,19 @@ import { useRoute } from '@react-navigation/native';
 
 const Logo = require('../assets/logo.png');
 
-export function HeaderTitle() {
+export type HeaderTitleProps = {
+    onLogoPress: () => void;
+}
+
+export function HeaderTitle({
+    onLogoPress,
+}: HeaderTitleProps) {
     const route = useRoute();
     const router = useRouter();
-
-    function handleLogoPress() {
-        if (router.canGoBack()) {
-            router.back();
-        }
-        else {
-            router.navigate('/');
-        }        
-    }
-
+    
     return (
         <View style={styles.container}>
-            <TouchableOpacity onPress={handleLogoPress}>
+            <TouchableOpacity onPress={onLogoPress}>
                 <Image
                     style={styles.logo}
                     source={Logo}

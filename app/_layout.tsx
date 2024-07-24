@@ -45,6 +45,15 @@ export default function App() {
     }
   }, [fontsLoaded, fontError]);
 
+  function handleLogoPress() {
+    if (router.canGoBack()) {
+        router.back();
+    }
+    else {
+        router.navigate('/');
+    }        
+}
+
   if (!fontsLoaded && !fontError) {
     return null;
   }
@@ -64,7 +73,7 @@ export default function App() {
                 fontWeight: 'bold',
               },
               headerBackVisible: false,
-              headerTitle: () => <HeaderTitle />,
+              headerTitle: () => <HeaderTitle onLogoPress={handleLogoPress} />,
               contentStyle: {
                 backgroundColor: theme.colors.background,
               },

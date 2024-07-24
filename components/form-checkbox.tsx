@@ -1,7 +1,7 @@
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { Checkbox, CheckboxItemProps, MD3Theme, useTheme } from "react-native-paper";
 import { useEffect, useRef } from "react";
-import { Control, Path, useController } from "react-hook-form";
+import { Control, Controller, Path, useController } from "react-hook-form";
 import { FormEntryV2 } from "../lib/config";
 
 export type FormCheckboxProps = {
@@ -16,7 +16,7 @@ export type FormCheckboxProps = {
 
 export function CheckboxField({
     name,
-    onChange,
+    onChange: propOnChange,
     onPress,
     isDisabled,
     control,
@@ -27,56 +27,51 @@ export function CheckboxField({
 }: FormCheckboxProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
-    const valueChanged = useRef(false);
-    const {
-        field,
-        fieldState,
-    } = useController({
-        name: name as Path<FormEntryV2>,
-        control,
-    });
 
-    function handlePress() {
-        const val = !field.value; 
-        field.onChange(val);
-
-        if (typeof onPress === 'function') {
-            onPress();
-        }
-    }
-
-    useEffect(() => {
-        if (valueChanged.current 
-            && typeof onChange === 'function'
-            && fieldState.isTouched
-        ) {
-            onChange(field.value as boolean);
-        } 
-
-        valueChanged.current = true;
-    }, [ field.value ]);
+    // useEffect(() => {
+    //     if (typeof onChange === 'function'&& fieldState.isTouched
+    //     ) {
+    //         onChange(field.value as boolean);
+    //     }
+    // }, [ field.value ]);
     
     return (
        <View style={[styles.container, containerStyle]}>
         <View style={{ flexGrow: 1, width: '100%', }} />
         <View style={{ justifyContent: 'flex-end', }}>
-            <Checkbox.Item
-                {...checkboxProps}
-                label={label || 'New Field'}
-                status={field.value == true ? 'checked' : 'unchecked'}
-                onPress={handlePress}        
-                disabled={isDisabled}   
-                style={{
-                    paddingBottom: 0,
-                    marginBottom: 0,
-                }} 
-                labelStyle={[{
-                    paddingBottom: 4,
-                    marginBottom: 0,
-                    fontSize: 16,
-                }, labelStyle]}
-                
-            />           
+            <Controller
+                key={`field-${name}`}
+                control={control}
+                name={name as Path<FormEntryV2>}
+                render={({ field: { onChange, onBlur, value,  name }}) => {
+                    function handleChange() {
+                        onChange(!value);
+
+                        if (typeof propOnChange === 'function') {
+                            propOnChange(!value);
+                        }
+                    }
+
+                    return (
+                        <Checkbox.Item
+                            {...checkboxProps}
+                            label={label || 'New Field'}
+                            status={value == true ? 'checked' : 'unchecked'}
+                            onPress={handleChange}     
+                            disabled={isDisabled}   
+                            style={{
+                                paddingBottom: 0,
+                                marginBottom: 0,
+                            }} 
+                            labelStyle={[{
+                                paddingBottom: 4,
+                                marginBottom: 0,
+                                fontSize: 16,
+                            }, labelStyle]}
+                        /> 
+                    )
+                }}
+            />          
         </View> 
        </View>
     )

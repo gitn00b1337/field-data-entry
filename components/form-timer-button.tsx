@@ -196,8 +196,7 @@ export function TimerButton({
         setShowResetMenu(false);
     }
 
-    const { extraLabelStyles, extraContainerStyles, extraTimeStyles, iconColor } = getExtraStyles(); 
-    const isGlobal = position === 'FLOATING_BUTTON_BR' || position === 'HEADER';
+    const { extraLabelStyles, extraContainerStyles, extraTimeStyles, iconColor } = getExtraStyles();
 
     return (
         <TouchableOpacity 

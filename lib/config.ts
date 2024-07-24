@@ -6,13 +6,14 @@ export type FormActionType = 'COPY_ROWS';
 export type FormActionCondition = 'HAS_VALUE';
 export type FormFieldOnChangeAction = 'NONE' | 'CREATE_BLANK';
 
-export type FormFieldType = 'TEXT' | 'WHOLE_NUMBER' | 'SELECT' | 'NUMERIC' | 'CHECKBOX' | 'TIMER' | 'TALLY';
-export type GlobalFieldType = 'TIMER';
+export type FormFieldType = 'TEXT' | 'WHOLE_NUMBER' | 'SELECT' | 'NUMERIC' | 'CHECKBOX' | 'TALLY' | 'TIMER';
+export type GlobalFieldType = 'TIMER' | 'PLAYBACK_BUTTON';
 
 export type FormConfig = {
     id: number;
     name: string;
     description: string;
+    displayRowNumbers: boolean;
     screens: FormScreenConfig[];
     position: number;
     imgSrc: string;
@@ -149,6 +150,8 @@ export type FormFieldConfig = {
     multiSelect: boolean;
     defaultValue: string;
     entryKey: string;
+    exportable: boolean;
+    persistsCopy: boolean;
 }
 
 export type GlobalFieldConfig = {
@@ -159,6 +162,8 @@ export type GlobalFieldConfig = {
     position: GlobalFieldPosition;
     startTrigger: GlobalFieldStartTrigger;
     entryKey: string;
+    filePath: string;
+    exportable: boolean;
 }
 
 export type FormFieldOptionConfig = {
@@ -198,6 +203,8 @@ export type CreateFieldConfigProps = {
     name?: string;
     multiSelect?: boolean;
     defaultValue?: string;
+    exportable?: boolean;
+    persistsCopy?: boolean;
 }
 
 export function createFieldConfig({
@@ -207,6 +214,8 @@ export function createFieldConfig({
     options = [],
     defaultValue = '',
     multiSelect = false,
+    exportable = true,
+    persistsCopy = false,
 }: CreateFieldConfigProps): FormFieldConfig {
     return {
         name,
@@ -217,6 +226,8 @@ export function createFieldConfig({
         multiSelect,
         id: generateUUID(),
         entryKey: generateUUID(),
+        exportable,
+        persistsCopy,
     };
 }
 
@@ -227,6 +238,8 @@ export type CreateGlobalFieldProps = {
     name?: string;
     position?: GlobalFieldPosition;
     startTrigger?: GlobalFieldStartTrigger;
+    filePath?: string;
+    exportable?: boolean;
 }
 
 export type GlobalFieldPosition = 'HEADER' | 'FLOATING_BUTTON_BR';
@@ -239,6 +252,8 @@ export function createGlobalField({
     type = 'TIMER',
     position = 'FLOATING_BUTTON_BR',
     startTrigger = 'MANUAL',
+    filePath = '',
+    exportable = true,
 }: CreateGlobalFieldProps): GlobalFieldConfig {
     return {
         name,
@@ -248,6 +263,8 @@ export function createGlobalField({
         position,
         startTrigger,
         entryKey: generateUUID(),
+        filePath,
+        exportable,
     };
 }
 
@@ -286,6 +303,7 @@ export function createFormConfig(): FormConfig {
         id: undefined,
         name: '',
         description: '',
+        displayRowNumbers: false,
         screens: [
             createFormScreenConfig({ 
                 title: '',

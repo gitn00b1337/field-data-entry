@@ -1,6 +1,6 @@
 import { StyleSheet, TouchableOpacity, View, } from "react-native";
-import { FormConfig, FormEntryV2, FormScreenConfig, createFieldConfig, createFieldEntry,  } from "../../lib/config";
-import { useTheme, MD3Theme, IconButton,  } from 'react-native-paper';
+import { FormConfig, FormEntryV2, FormScreenConfig, createFieldConfig, createFieldEntry, } from "../../lib/config";
+import { useTheme, MD3Theme, IconButton, } from 'react-native-paper';
 import React, { useEffect, useState } from 'react';
 import { useGlobalState } from "../global-state";
 import { DrawerScreenContent } from "./drawer-screen-content";
@@ -69,7 +69,7 @@ export function DrawerMenu({
 
         return () => DeviceMotion.removeSubscription(subscription);
     }, []);
-    
+
     const {
         append: appendField,
         remove: removeField,
@@ -77,7 +77,7 @@ export function DrawerMenu({
     } = useFieldArray({
         control,
         name: `config.screens.${screenIndex}.rows.${selectedRowIndex}.fields`
-    }); 
+    });
 
     function handleDeleteField(fieldIndex: number) {
         removeField(fieldIndex);
@@ -113,84 +113,89 @@ export function DrawerMenu({
     }
 
     return (
-        <Wrapper isPortrait={isPortrait}>
-        <View style={[
-            {
-                ...styles.container,
-                display: state.drawerVisible ? 'flex' : 'none',
-            }, 
-            isPortrait && styles.portraitContainer,
-            ]}>
-            {
-                state.configType === 'NAV' && (
-                    <DrawerScreenContent
-                        theme={theme}
-                        control={control}
-                        onScreenChange={onScreenChange}
-                        screenIndex={screenIndex}
-                        onAddScreen={onAddScreen}
-                        onDeleteScreen={onDeleteScreen}
-                    />
-                )
-            }
-            {
-                state.configType === 'ROW' && (
-                    <DrawerRowContent
-                        theme={theme}
-                        selectedRowIndex={selectedRowIndex}
-                        fieldName={fieldName}
-                        screenIndex={screenIndex}
-                        screen={activeScreen}
-                        setValue={setValue}
-                        control={control}
-                        onAddField={handleAddField}
-                        onEditFieldPress={onEditFieldPress}
-                        onDeleteRow={onDeleteRow}
-                        onChangeRowPress={onRowPress}
-                        onAddRow={onAddRow}
-                        onMoveField={handleMoveField}
-                    />
-                )
-            }
-            {
-                state.configType === 'FIELD' && (
-                    <DrawerFieldContent
-                        theme={theme}
-                        fieldIndex={selectedFieldIndex}
-                        rowIndex={selectedRowIndex}
-                        screenIndex={screenIndex}
-                        onDeleteField={handleDeleteField}
-                        control={control}
-                        setValue={setValue}
-                    />
-                )
-            }
-            {
-                state.configType === 'SETTINGS' && (
-                    <DrawerSettingsContent
-                        control={control}
-                    />
-                )
-            }
-            {
-                state.configType === 'TRIGGER' && (
-                    <DrawerTriggersContent
-                        theme={theme}
-                        screen={screens[screenIndex]}
-                        screenIndex={screenIndex}
-                        control={control}
-                    />
-                )
-            }
-            {
-                state.configType === 'TIMERS' && (
-                    <DrawerTimersContent
-                        control={control}
-                        theme={theme}
-                    />
-                )
-            }
-            <View style={[styles.actionsContainer, isPortrait && styles.portraitBottomActions ]}>
+        <View style={[isPortrait && styles.portraitDrawer, !isPortrait && styles.landscapeDrawer ]}>
+            <ScrollView contentContainerStyle={{
+            }}>
+                <View style={[
+                    {
+                        ...styles.container,
+                        display: state.drawerVisible ? 'flex' : 'none',
+                        position: 'relative',
+                    },
+                    isPortrait && styles.portraitContainer,
+                ]}>
+                    {
+                        state.configType === 'NAV' && (
+                            <DrawerScreenContent
+                                theme={theme}
+                                control={control}
+                                onScreenChange={onScreenChange}
+                                screenIndex={screenIndex}
+                                onAddScreen={onAddScreen}
+                                onDeleteScreen={onDeleteScreen}
+                            />
+                        )
+                    }
+                    {
+                        state.configType === 'ROW' && (
+                            <DrawerRowContent
+                                theme={theme}
+                                selectedRowIndex={selectedRowIndex}
+                                fieldName={fieldName}
+                                screenIndex={screenIndex}
+                                screen={activeScreen}
+                                setValue={setValue}
+                                control={control}
+                                onAddField={handleAddField}
+                                onEditFieldPress={onEditFieldPress}
+                                onDeleteRow={onDeleteRow}
+                                onChangeRowPress={onRowPress}
+                                onAddRow={onAddRow}
+                                onMoveField={handleMoveField}
+                            />
+                        )
+                    }
+                    {
+                        state.configType === 'FIELD' && (
+                            <DrawerFieldContent
+                                theme={theme}
+                                fieldIndex={selectedFieldIndex}
+                                rowIndex={selectedRowIndex}
+                                screenIndex={screenIndex}
+                                onDeleteField={handleDeleteField}
+                                control={control}
+                                setValue={setValue}
+                            />
+                        )
+                    }
+                    {
+                        state.configType === 'SETTINGS' && (
+                            <DrawerSettingsContent
+                                control={control}
+                            />
+                        )
+                    }
+                    {
+                        state.configType === 'TRIGGER' && (
+                            <DrawerTriggersContent
+                                theme={theme}
+                                screen={screens[screenIndex]}
+                                screenIndex={screenIndex}
+                                control={control}
+                            />
+                        )
+                    }
+                    {
+                        state.configType === 'TIMERS' && (
+                            <DrawerTimersContent
+                                control={control}
+                                theme={theme}
+                            />
+                        )
+                    }
+                </View>
+            </ScrollView>
+            <View style={[styles.actionsContainer,]}>
                 <ActionButton
                     onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'SETTINGS')}
                     icon='cog'
@@ -206,45 +211,8 @@ export function DrawerMenu({
                     icon='timer'
                     isFocused={state.configType === 'TIMERS'}
                 />
-                {/* <ActionButton
-                    onPress={() => dispatch('SET_DRAWER_CONFIG_TYPE', 'TRIGGER')}
-                    icon='lightning-bolt'
-                    isFocused={state.configType === 'TRIGGER'}
-                /> */}
             </View>
         </View>
-        </Wrapper>
-    )
-}
-
-function Wrapper({ children, isPortrait }: { children: React.ReactNode, isPortrait: boolean }) {
-    if (isPortrait) {
-        return (
-            <View style={{
-                borderColor: '#DDDDDD',
-                borderWidth: 1,
-                borderTopLeftRadius: 24,
-                borderTopRightRadius: 24,
-                height: '40%',
-                elevation: 12,
-                overflow: 'hidden',
-                backgroundColor: '#fff',
-                paddingTop: 12,
-                marginTop: 12,
-            }}>
-                <ScrollView style={{
-                }}>
-                    { children }
-                </ScrollView>
-            </View>
-            
-        )
-    }
-
-    return (
-        <>
-            { children }
-        </>
     )
 }
 
@@ -262,15 +230,15 @@ function ActionButton({
     const theme = useTheme();
 
     return (
-        <TouchableOpacity 
-            style={actionStyles.actionBtnContainer} 
+        <TouchableOpacity
+            style={actionStyles.actionBtnContainer}
             onPress={onPress}
         >
-            <IconButton 
-                style={actionStyles.actionBtn} 
+            <IconButton
+                style={actionStyles.actionBtn}
                 icon={icon}
-                size={22} 
-                iconColor={isFocused ? theme.colors.primary : undefined} 
+                size={22}
+                iconColor={isFocused ? theme.colors.primary : undefined}
             />
         </TouchableOpacity>
     )
@@ -294,26 +262,46 @@ const actionStyles = StyleSheet.create({
     },
     actionBtnText: {
         fontSize: 28,
-    },    
+    },
 });
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    portraitDrawer: {
+        borderColor: '#DDDDDD',
+        borderWidth: 1,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        elevation: 12,
+        overflow: 'hidden',
+        backgroundColor: theme.colors.surface,
+        paddingTop: 12,
+        marginTop: 12,
+        height: '50%',
+        position: 'relative',
+        paddingBottom: 52
+    },
+    landscapeDrawer: {
+        width: '30%',
+        maxWidth: 450,
+        position: 'relative',
+        minHeight: '100%',
+        paddingBottom: 52,
+        backgroundColor: theme.colors.surface,
+    },
     container: {
         alignContent: 'stretch',
         alignItems: 'stretch',
         justifyContent: 'flex-start',
-        borderRightColor: theme.colors.surface,
-        borderRightWidth: 1,
-        position: 'relative',
-        width: '30%',
-        maxWidth: 450,
-        backgroundColor: '#fff',
+        // backgroundColor: '#fff',
+        flex: 1,
+        paddingBottom: 24,
     },
     portraitContainer: {
         width: '100%',
         maxWidth: undefined,
-        backgroundColor: '#fff',
+        // backgroundColor: '#fff',
         minHeight: 435,
+        height: '45%',
     },
     actionsContainer: {
         width: '100%',
@@ -324,7 +312,13 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         alignContent: 'stretch',
         borderTopWidth: 1,
         borderTopColor: theme.colors.surface,
-    },  
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        backgroundColor: '#fff',
+    },
     portraitBottomActions: {
 
     }

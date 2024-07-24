@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { View, StyleSheet, Text, } from "react-native";
+import { View, StyleSheet, Text, ViewStyle, } from "react-native";
 import { Dropdown, } from 'react-native-element-dropdown';
 import { MD3Theme, useTheme } from "react-native-paper";
 import { deferredEffect } from "../lib/effect";
@@ -19,6 +19,7 @@ export type FormSelectProps = {
   isDisabled?: boolean;
   control: Control<FormEntryV2, any>;
   defaultValue?: string;
+  style?: ViewStyle
 }
 
 export function FormSelectField({
@@ -28,6 +29,7 @@ export function FormSelectField({
   onFocus,
   onChange,
   control,
+  style,
 }: FormSelectProps) {
   const [isFocus, setIsFocus] = useState(false);
   const val = useWatch({
@@ -85,7 +87,7 @@ export function FormSelectField({
   }, [ val ]);
 
   return (
-    <View style={styles.border}>
+    <View style={[styles.border, style]}>
         <View style={{ flexGrow: 1, }} />
         <View style={styles.container}>
             <Animated.View style={[{
@@ -99,38 +101,39 @@ export function FormSelectField({
                     {label || 'New Field'}
                 </Animated.Text>
             </Animated.View>   
-                <View style={{ width: '100%' }}>  
-            <Controller
-              key={`field-${fieldName}`}
-              control={control}
-              name={fieldName as Path<FormEntryV2>}
-              render={({ field, }) => (
-                <Dropdown
-                  style={[styles.dropdown, isFocus && { borderColor: theme.colors.primary }]}
-                  placeholderStyle={styles.placeholderStyle}
-                  selectedTextStyle={styles.selectedTextStyle}
-                  inputSearchStyle={styles.inputSearchStyle}
-                  containerStyle={styles.dropdownContainer}
-                  iconStyle={styles.iconStyle}
-                  data={options}
-                  search
-                  maxHeight={300}
-                  labelField={'label'}
-                  valueField={'value'}
-                  placeholder={''}
-                  searchPlaceholder="Search..."
-                  itemContainerStyle={{ marginLeft: 0, paddingLeft: 0, left: 0 }}
-                  value={field.value?.toString()}
-                  onFocus={() => setIsFocus(true)}
-                  onBlur={() => setIsFocus(false)}
-                  onChange={item => {
-                    field.onChange(item.value);
-                    setIsFocus(false);
-                  }}
+              <View style={{ flex: 1, position: 'relative' }}>  
+                <Controller
+                  key={`field-${fieldName}`}
+                  control={control}
+                  name={fieldName as Path<FormEntryV2>}
+                  render={({ field, }) => (
+                    <Dropdown
+                      style={[styles.dropdown, isFocus && { borderColor: theme.colors.primary }]}
+                      placeholderStyle={styles.placeholderStyle}
+                      selectedTextStyle={styles.selectedTextStyle}
+                      inputSearchStyle={styles.inputSearchStyle}
+                      containerStyle={styles.dropdownContainer}
+                      iconStyle={styles.iconStyle}
+                      data={options}
+                      search
+                      mode='auto'
+                      maxHeight={300}
+                      labelField={'label'}
+                      valueField={'value'}
+                      placeholder={''}
+                      searchPlaceholder="Search..."
+                      // itemContainerStyle={{ marginLeft: 0, paddingLeft: 0, left: 0 }}
+                      value={field.value?.toString()}
+                      onFocus={() => setIsFocus(true)}
+                      onBlur={() => setIsFocus(false)}
+                      onChange={item => {
+                        field.onChange(item.value);
+                        setIsFocus(false);
+                      }}
+                    />
+                  )}
                 />
-              )}
-            />
-            </View>
+              </View>
             </View>
     </View>
   )

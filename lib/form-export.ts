@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system';
 import moment from "moment";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { formatTotalSecondsToTimeString } from "./utils";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 const SAF = FileSystem.StorageAccessFramework;
 
@@ -30,9 +31,10 @@ async function trySaveFileUsingCachedPermissions(asyncStoreKey: string, fileCont
 
 function getExportFileName(entry: FormEntryV2) {
     const createdAt = moment.utc(entry.createdAt);
-    const createdAtStr = createdAt.format('dd-MM-yy-HH-mm-ss');
-
-    return `DataExport_${createdAtStr}.csv`;
+    const createdAtStr = createdAt.format('DD-MM-yy-HH-mm-ss');
+    const fileName = `DataExport_${createdAtStr}.csv`;
+    console.log(`fileName: ${fileName}`);
+    return fileName;
 }
 
 function getMultiExportFileName(entries: FormEntryV2[]) {
@@ -51,10 +53,11 @@ function getMultiExportFileName(entries: FormEntryV2[]) {
         }
     });
 
-    const first = moment.utc(ordered[0].createdAt).format('dd-MM-yy');
-    const last = moment.utc(ordered.slice(-1)[0].createdAt).format('dd-MM-yy');
-
-    return `DataExport_${first}_${last}.csv`
+    const first = moment.utc(ordered[0].createdAt).format('DD-MM-yy');
+    const last = moment.utc(ordered.slice(-1)[0].createdAt).format('DD-MM-yy');
+    const fileName = `DataExport_${first}_${last}.csv`;
+    console.log(`fileName: ${fileName}`);
+    return fileName;
 }
 
 function getExportColumns(entry: FormEntryV2) {
@@ -94,33 +97,6 @@ export async function exportTemplate(config: FormConfig) {
     }
 }
 
-function getMergedExportColumns(entries: FormEntryV2[]) {
-    let columns: Column[] = [];
-
-    for (const entry of entries) {
-        const cols = getExportColumns(entry);
-        
-        for (const column of cols) {
-            const nameMatch = cols.findIndex(c => c.name === column.name);
-
-            if (nameMatch === -1) {
-                columns.push(column);
-            }
-            else {
-                columns[nameMatch] = {
-                    ...columns[nameMatch],
-                    rows: [
-                        ...columns[nameMatch].rows,
-                        ...column.rows
-                    ]
-                }
-            }
-        }
-    }
-
-    return columns;
-}
-
 async function writeCSV(fileName: string, contents: string) {
     const asyncStoreKey = "SAFStore";
     const { success } = await trySaveFileUsingCachedPermissions(asyncStoreKey, contents, fileName);
@@ -139,28 +115,77 @@ async function writeCSV(fileName: string, contents: string) {
 }
 
 export async function exportMultipleForms(entries: FormEntryV2[]) {
-    for (const entry of entries) {
-        await exportForm(entry);
+    if (entries.length === 0) {
+        return;
+    }
+    else if (entries.length === 1) {
+        return await exportForm(entries[0]);
     }
 
-    // if (entries.length === 0) {
-    //     return;
-    // }
-    // else if (entries.length === 1) {
-    //     return await exportForm(entries[0]);
-    // }
+    let previousEntries = [
+        entries[0],
+    ];
 
-    // const columns = getMergedExportColumns(entries);
-    // const csv = writeColumnsCSV(columns);
-    
-    // const fileName = getMultiExportFileName(entries);
-    // await writeCSV(fileName, csv);
+    for (let i=1; i<entries.length; i++) {
+        const entry = entries[i];
+        const prevEntry = entries[i-1];
+
+        const canMerge = canMergeEntries(prevEntry, entry);
+        console.log(`Can merge entries: ${canMerge}`);
+
+        if (!canMerge) {
+            await mergeAndExportForms([ ...previousEntries, entry ]);
+            previousEntries = [ entry ];
+            continue;
+        } else {
+            previousEntries.push(entry);
+        }
+
+        if (i === entries.length-1) {
+            await mergeAndExportForms(previousEntries);
+        }
+    }
+}
+
+function canMergeEntries(entry1: FormEntryV2, entry2: FormEntryV2) {
+    const cols1 = getExportColumns(entry1);
+    const cols2 = getExportColumns(entry2);
+
+    if (cols1.length !== cols2.length) {
+        return false;
+    }
+
+    for (let i=0; i<cols1.length; i++) {
+        const col1 = cols1[i];
+        const col2 = cols2[i];
+
+        if (col1.name !== col2.name || col1.index!== col2.index) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+async function mergeAndExportForms(entries: FormEntryV2[]) {
+   const fileName = getMultiExportFileName(entries);
+
+   let csv = '';
+
+   for (let i=0; i<entries.length; i++) {
+    const columns = getExportColumns(entries[i]);
+    const entryCSV = writeColumnsCSV(columns, i > 0);
+    csv += entryCSV;
+   }
+
+   console.log('csv:')
+   console.log(csv);
+   await writeCSV(fileName, csv);
 }
 
 export async function exportForm(entry: FormEntryV2) {
     const columns = getExportColumns(entry);
     const csv = writeColumnsCSV(columns);
-    // console.log(csv);
 
     const fileName = getExportFileName(entry);
     await writeCSV(fileName, csv);
@@ -173,37 +198,6 @@ type ScreenRowGroup = {
 
 type GroupedScreenRows = {
     [rowKey: string]: ScreenRowGroup
-}
-
-function groupScreenRowsByRowKey(screen: FormScreenConfig): GroupedScreenRows {
-    return screen.rows
-        // group the rows by key
-        .reduce((groups, row, index) => {
-            const group: ScreenRowGroup | undefined = groups[row.id];
-
-            if (group) {
-                return {
-                    ...groups,
-                    [row.id]: {
-                        index: Math.min(index, group.index),
-                        rows: [
-                            ...(group?.rows || []),
-                            row,
-                        ],
-                    }
-                }
-            }
-
-            const newGroup: ScreenRowGroup = {
-                index,
-                rows: [ row ],
-            };
-
-            return {
-                ...groups,
-                [row.id]: newGroup,
-            };
-        }, {});
 }
 
 function orderGroupedRows(groups: GroupedScreenRows): ScreenRowGroup[] {
@@ -219,7 +213,7 @@ type Column = {
     index: number;
     rows: {
         value: string | number | boolean;
-        type: FormFieldType | FormFieldType;
+        type: FormFieldType | GlobalFieldType;
     }[]
 }
 
@@ -239,6 +233,15 @@ function getColumns(entry: FormEntryV2, groups: ScreenRowGroup[]): Column[] {
                 const currentCol = mapped[fieldIndex];
                 const entryValue = entry.values[field.entryKey];
                 const value = typeof entryValue !== 'undefined' ? entryValue?.value : '';
+
+                // @ts-ignore
+                if (field.type === 'PLAYBACK_BUTTON') {
+                    console.log(`Skipping audio button`)
+                    continue; 
+                }
+
+                // console.log(`field type: ${field.type}`)
+                // console.log(field)
     
                 mapped[fieldIndex] =  {
                     name: field.label,
@@ -272,7 +275,6 @@ function writeColumnsCSV(columns: Column[], isAppend = false) {
     const maxRows = getMaxRows(columns);
     const startIndex = isAppend ? 0 : -1;
     let csv = '';
-
 
     for (let rowIndex = startIndex; rowIndex < maxRows; rowIndex++) {
         let line = '';
@@ -313,8 +315,8 @@ function parseValue(val: any, type: FormFieldType | GlobalFieldType) {
     }
 }
 
-function groupScreenRows(screen: FormScreenConfig): GroupedScreenRows {
-    return screen.rows.reduce<GroupedScreenRows>((grp, row, rowIndex) => {
+function groupScreenRows(rows: FormRow[]): GroupedScreenRows {
+    return rows.reduce<GroupedScreenRows>((grp, row, rowIndex) => {
         if (!row.parentId) {
             return {
                 ...grp,
@@ -346,7 +348,7 @@ function getEntryDateColumn(entry: FormEntryV2) {
     const value = moment(entry.createdAt)
         .utc()
         .local()
-        .format('HH:mm dd-MM-YYY');
+        .format('HH:mm DD-MM-YYYY');
 
     const col: Column = {
         name: 'Entry Time',
@@ -365,31 +367,28 @@ function getEntryDateColumn(entry: FormEntryV2) {
 export function convertScreenToSheetColumns(entry: FormEntryV2, screenIndex: number) {
     const screen = entry.config.screens[screenIndex];
 
-    // const grouped = groupScreenRowsByRowKey(screen);
-    const grouped = groupScreenRows(screen);
-    console.log(`Grouped Rows, expected 1, got ${Object.keys(grouped).length}`)
+    const grouped = groupScreenRows(screen.rows);
     const orderedGroups = orderGroupedRows(grouped);
-    console.log(`Ordered count: ${orderedGroups.length}`);
     const columns = getColumns(entry, orderedGroups);
-    console.log(`Columns, expected 6, received ${columns.length}`)
     return columns;    
 }
 
 export function convertGlobalFieldsToColumns(entry: FormEntryV2, startIndex: number) {
-    return entry.config.globalFields.map((gf, index) => {
-        const value = entry.values[gf.entryKey]?.value;
+    return entry.config.globalFields
+        .filter(f => f.exportable)
+        .map((gf, index) => {
+            const value = entry.values[gf.entryKey]?.value;
+            const col: Column = {
+                name: gf.label,
+                index: startIndex + index,
+                rows: [
+                    {
+                        value,
+                        type: gf.type,
+                    }
+                ]
+            };
 
-        const col: Column = {
-            name: gf.label,
-            index: startIndex + index,
-            rows: [
-                {
-                    value,
-                    type: gf.type,
-                }
-            ]
-        };
-
-        return col;
-    })
+            return col;
+        })
 }

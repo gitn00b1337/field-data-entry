@@ -1,8 +1,9 @@
-import { DimensionValue, StyleSheet, TouchableOpacity, View } from "react-native";
+import { DimensionValue, StyleSheet, TouchableOpacity, View, Text } from "react-native";
 import { FormEntryV2, FormFieldConfig, FormRow, } from "../lib/config"
-import { MD3Theme, useTheme, Button } from "react-native-paper";
+import { MD3Theme, useTheme, Button, Icon, IconButton } from "react-native-paper";
 import { FormField } from "./form-field";
 import { Control, UseFormReturn, useWatch, } from "react-hook-form";
+import { RowMeta } from "./form-screen";
 
 export type FormRowProps = {
     isFocused: boolean;
@@ -14,8 +15,12 @@ export type FormRowProps = {
     onFieldChange?: (config: FormFieldConfig, value: any) => void;
     control: Control<FormEntryV2, any>;
     onCopyRow: (rowIndex: number) => void;
+    onDeleteRow?: (rowIndex: number) => void;
     CopyButton?: React.ReactNode;
     form: UseFormReturn<FormEntryV2, any>;
+    canDeleteRow?: boolean;
+    displayRowNumbers: boolean
+    meta: RowMeta;
 };
 
 export function FormEntryRow({
@@ -30,6 +35,10 @@ export function FormEntryRow({
     CopyButton,
     screenIndex,
     form,
+    canDeleteRow = false,
+    onDeleteRow = () => {},
+    displayRowNumbers,
+    meta,
 }: FormRowProps) {
     const theme = useTheme();
     const styles = makeStyles(theme);
@@ -63,38 +72,64 @@ export function FormEntryRow({
     const fieldCount = fields.length;
     const rows = Math.ceil(fieldCount / maxFields);
     const fieldsPerRow = Math.ceil(fieldCount / rows);
-
-    console.log(`fieldsPerRow: ${fieldsPerRow}`)
-
-    const flexBasis: DimensionValue = `${100 / fieldsPerRow}%`
+    const flexBasis: DimensionValue = `${100 / fieldsPerRow}%`;    
 
     return (
         <>
             <TouchableOpacity onPress={handlePress} style={styles.container}>
-                <View style={{ ...styles.row, ...focusedStyle,}}>                
+                <View style={styles.row}>
+                    <View style={{ justifyContent: 'center', paddingRight: 4, paddingTop: 6, height: 54, width: 20, alignItems: 'flex-start',  }}>
+                        <Text> { displayRowNumbers && meta.isInGroup ? meta.groupRowIndex : '' }</Text>
+                    </View>     
+                    <View style={{ ...styles.fieldRow, ...focusedStyle,}}>                
+                        {
+                            fields.map((field, fieldIndex) => (
+                                <View style={{ flex: 1, flexBasis }} key={field.entryKey}>
+                                    <FormField                                        
+                                        config={field}
+                                        onPress={() => handleFieldPress(fieldIndex)}
+                                        onChange={(field, value) => onFieldChange(field, value)}
+                                        isDisabled={isDesignMode}
+                                        control={control}
+                                        // containerStyle={{ flexBasis, }}
+                                    />
+                                </View>
+                            ))
+                        }
+                    </View>
+                    { !canDeleteRow && <View style={styles.deleteButtonContainer} /> }
                     {
-                        fields.map((field, fieldIndex) => (
-                            <FormField
-                                key={field.entryKey}
-                                config={field}
-                                onPress={() => handleFieldPress(fieldIndex)}
-                                onChange={(field, value) => onFieldChange(field, value)}
-                                isDisabled={isDesignMode}
-                                control={control}
-                                containerStyle={{ flexBasis, }}
-                            />
-                        ))
+                        !isDesignMode && canDeleteRow && (
+                            <TouchableOpacity style={styles.deleteButtonContainer} onPress={() => onDeleteRow(index)}>
+                                <IconButton 
+                                icon='trash-can-outline' 
+                                style={styles.deleteButton} 
+                                iconColor={theme.colors.tertiary}
+                                />
+                            </TouchableOpacity>
+                        )
                     }
                 </View>
             </TouchableOpacity>
             {
                 CopyButton
-            }
+            }            
         </>
     )
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
+    deleteButton: {
+        width: 28,
+        height: 28,
+    },
+    deleteButtonContainer: {
+        width: 32,
+        marginBottom: 12,
+        justifyContent: 'flex-end',  
+        alignItems: 'center',
+        alignContent: 'center'
+    },
     container: {
         minWidth: 100,
         minHeight: 50,
@@ -109,10 +144,17 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'flex-start',
-        alignContent: 'stretch',
-        alignItems: 'stretch',
         position: 'relative',
-        flex: 1
+        flex: 1,
+    },
+    fieldRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-start',
+        position: 'relative',
+        flex: 1,
+        // width: '100%',
+        columnGap: 12,
     },
     column: {
         flexDirection: 'column',

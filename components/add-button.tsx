@@ -1,16 +1,18 @@
-import { StyleSheet, ViewStyle } from "react-native";
+import { StyleProp, StyleSheet, TextStyle, ViewStyle } from "react-native";
 import { Button, MD3Theme, useTheme } from "react-native-paper";
 
 export type AddButtonprops = {
     label?: string;
     onPress: () => void;
-    style?: ViewStyle
+    style?: ViewStyle;
+    labelStyle?: StyleProp<TextStyle>;
 }
 
 export function AddButton({
     label = 'Add',
     onPress,
     style,
+    labelStyle,
 }: AddButtonprops) {
     const theme = useTheme();
     const styles = makeStyles(theme);
@@ -20,7 +22,7 @@ export function AddButton({
             style={[styles.btn, style]}
             onPress={onPress}
             textColor="rgb(34, 34, 34)"
-            labelStyle={styles.labelStyle}
+            labelStyle={[styles.labelStyle, labelStyle]}
         >
             { label}
         </Button>

@@ -294,7 +294,7 @@ export function TemplateForm({ initialValues, onSubmit }: TemplateFormProps) {
     const formSubmit = form.handleSubmit(onSubmit);
 
     return (
-        <GestureHandlerRootView style={{ flexGrow: 1, }}>
+        <GestureHandlerRootView style={{ flex: 1, }}>
             <LeaveFormDialog
                 isVisible={showLeaveDialog}
                 onHideModal={() => setShowLeaveDialog(false)}
@@ -305,7 +305,7 @@ export function TemplateForm({ initialValues, onSubmit }: TemplateFormProps) {
                 onHideModal={() => setShowDeleteDialog(false)}
                 onDelete={handleDeleteForm}
             />
-            <ScrollView contentContainerStyle={{ flexGrow: 1, }}>
+            <View style={[{ flex: 1, }, isPortrait && { flexDirection: 'column' }]}>
                 {
                     !!snackbarOptions && (
                         <FormSnackbar
@@ -342,7 +342,8 @@ export function TemplateForm({ initialValues, onSubmit }: TemplateFormProps) {
                             />
                         )
                     }
-                    <View style={styles.container}>
+                    <View style={[styles.container]}>
+                        <ScrollView>
                         {
                             screen && (
                                 <DataCollectionFormContent
@@ -369,34 +370,35 @@ export function TemplateForm({ initialValues, onSubmit }: TemplateFormProps) {
                                 />
                             )
                         }
+                        </ScrollView>
                     </View>
                 </View>
-                    {
-                        isPortrait && (
-                            <DrawerMenu
-                                onScreenChange={(newScreenIndex) => {
-                                    setScreenIndex(newScreenIndex);
-                                    setRowIndex(0);
-                                    setFieldIndex(0);
-                                    dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW');
-                                }}
-                                screenIndex={screenIndex}
-                                onAddScreen={handleAddScreen}
-                                selectedRowIndex={rowIndex}
-                                onFieldAdded={fieldIndex => setFieldIndex(fieldIndex)}
-                                onEditFieldPress={handleEditFieldPress}
-                                selectedFieldIndex={fieldIndex}
-                                setValue={setValue}
-                                control={control}
-                                onDeleteRow={handleDeleteRow}
-                                onFieldDeleted={(fi) => handleFieldPress(rowIndex, fi)}
-                                onRowPress={handleRowPress}
-                                onDeleteScreen={handleDeleteScreen}
-                                onAddRow={handleAddRow}
-                            />
-                        )
-                    }
-            </ScrollView>
+                {
+                    isPortrait && (
+                        <DrawerMenu
+                            onScreenChange={(newScreenIndex) => {
+                                setScreenIndex(newScreenIndex);
+                                setRowIndex(0);
+                                setFieldIndex(0);
+                                dispatch('SET_DRAWER_CONFIG_TYPE', 'ROW');
+                            }}
+                            screenIndex={screenIndex}
+                            onAddScreen={handleAddScreen}
+                            selectedRowIndex={rowIndex}
+                            onFieldAdded={fieldIndex => setFieldIndex(fieldIndex)}
+                            onEditFieldPress={handleEditFieldPress}
+                            selectedFieldIndex={fieldIndex}
+                            setValue={setValue}
+                            control={control}
+                            onDeleteRow={handleDeleteRow}
+                            onFieldDeleted={(fi) => handleFieldPress(rowIndex, fi)}
+                            onRowPress={handleRowPress}
+                            onDeleteScreen={handleDeleteScreen}
+                            onAddRow={handleAddRow}
+                        />
+                    )
+                }
+            </View>
         </GestureHandlerRootView>
     )
 }
@@ -432,14 +434,13 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
     container: {
         // no padding right, want extra finger space for selecting rows
         paddingTop: 24,
-        maxWidth: 1200,
+        // maxWidth: 1200,
         display: 'flex',
         justifyContent: 'flex-start',
         alignItems: 'stretch',
         alignContent: 'stretch',
-        flexGrow: 1,
         width: '70%',
-        marginHorizontal: 'auto'
+        marginHorizontal: 'auto',
     },
     formSection: {
         marginBottom: 12,
@@ -451,11 +452,10 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'stretch',
         alignContent: 'stretch',
-        flexGrow: 1,
+        flex: 1,
         backgroundColor: '#fff',
     },
     portraitPage: {
-        flexDirection: 'column',
     },
     imagePicker: {
         marginBottom: 12,

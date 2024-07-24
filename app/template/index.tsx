@@ -4,6 +4,7 @@ import { TemplateForm } from "./template-form";
 import { FormSnackbar, FormSnackbarType } from "../../components/form-snackbar";
 import { useState } from "react";
 import { saveConfiguration } from "../../lib/database";
+import { View } from "react-native";
 
 const config = createFormConfig();
 const form = createFormV2(config);
@@ -35,7 +36,7 @@ export default function CreateTemplateScreen() {
     }
 
     return (
-        <>
+        <View style={{ flex: 1, }}>
             {
                 !!snackbarOptions && (
                     <FormSnackbar
@@ -50,7 +51,7 @@ export default function CreateTemplateScreen() {
                 initialValues={form}
                 onSubmit={handleSubmit}
             />
-        </>
+        </View>
     )
 }
 

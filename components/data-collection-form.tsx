@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { FormScreen, Direction } from "./form-screen";
 import { FormEntryV2, FormRow, } from "../lib/config";
 import { FormGlobalButtons } from "./form-global-buttons";
@@ -21,6 +21,7 @@ export type DataCollectionFormProps<T> = {
     onExportForm?: (values: FormEntryV2) => void;
     onChangeScreen: (screenIndex: number) => void;
     formName?: string;
+    onCopyEntry?: (values: FormEntryV2) => void;
 };
 
 export type DataCollectionFormContentProps<T> = {  
@@ -42,6 +43,7 @@ export function DataCollectionFormContent({
     onChangeScreen,
     submitForm,
     formName,
+    onCopyEntry,
 }: DataCollectionFormContentProps<FormEntryV2>) {
     const formValues = form?.getValues();
 
@@ -52,9 +54,9 @@ export function DataCollectionFormContent({
     const screenCount = formValues.config.screens.length;
 
     return (
-        <>
+        <View style={{ flex: 1, }}>
             <View>
-                    <Text style={styles.header}>{formName || formValues.config.name || 'Data Collection'}</Text>
+                <Text style={styles.header}>{formName || formValues.config.name || 'Data Collection'}</Text>
             </View>
             <FormScreen
                 form={form}
@@ -65,6 +67,7 @@ export function DataCollectionFormContent({
                 onFieldPress={onFieldPress}    
                 onSubmit={submitForm}     
                 onChangeScreen={onChangeScreen}
+                displayRowNumbers={formValues.config.displayRowNumbers}
             />
             <FormGlobalButtons 
                 control={form.control}
@@ -73,13 +76,22 @@ export function DataCollectionFormContent({
                 onSubmitForm={submitForm}
                 onDiscardForm={() => onDiscardPress(form.formState.isDirty)}
                 onDeleteForm={onDeleteFormPress}
-                onExportForm={() => onExportForm(form.getValues())}
+                onExportForm={() => {
+                    if (typeof onExportForm === 'function') {
+                        onExportForm(form.getValues());
+                    }
+                }}
                 screenIndex={screenIndex}
                 onChangeScreen={onChangeScreen}
                 screenCount={screenCount}
-                onSubmit={submitForm}     
+                onSubmit={submitForm}    
+                onCopyEntry={() => {
+                    if (typeof onCopyEntry === 'function') {
+                        onCopyEntry(form.getValues());
+                    }
+                }} 
             />
-        </>
+        </View>
     )
 }
 
@@ -114,7 +126,10 @@ export function DataCollectionForm(props: DataCollectionFormProps<FormEntryV2>) 
         <DataCollectionFormContent
             {...props}
             form={form}
-            submitForm={form.handleSubmit(props.onSubmit)}
+            submitForm={form.handleSubmit((vals: FormEntryV2) => {
+                props.onSubmit(vals);
+                form.reset(vals);
+            })}
         />
     )
 }

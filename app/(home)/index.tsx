@@ -17,7 +17,7 @@ import moment from 'moment';
 import * as FileSystem from 'expo-file-system';
 import { FormConfig } from '../../lib/config';
 import { FormSnackbar, FormSnackbarType } from '../../components/form-snackbar';
-import usAIDLogo from '../../assets/usaid-logo.jpg';
+import usAIDLogo from '../../assets/usaid-logo.png';
 
 export default function HomeScreen() {
     const [templates, setTemplates] = useState<TemplateListItem[]>([]);
@@ -120,7 +120,7 @@ export default function HomeScreen() {
         router.push('/template');
     }
 
-    function handleBackClick() {
+    function handleBackPress() {
         setSelectedTemplate(undefined);
     }
 
@@ -234,7 +234,7 @@ export default function HomeScreen() {
                                 <IconButton
                                     icon='chevron-left'
                                     style={styles.backButton}
-                                    onPress={handleBackClick}
+                                    onPress={handleBackPress}
                                     size={36}
                                     iconColor='#000'
                                 />
@@ -258,7 +258,7 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.usAIDContainer}>
                     <View style={styles.usAIDTextContainer}>
-                        <Text>MADE POSSIBLE WITH FUNDING FROM</Text>
+                        <Text style={{ textTransform: 'uppercase', textAlign: 'center', fontSize: 10 }}>{`This app was developed \nwith support from USAID`}</Text>
                     </View>
                     <View style={styles.usAIDLogoContainer}>
                         <Image
@@ -284,11 +284,12 @@ const styles = StyleSheet.create({
         paddingTop: 24,
     },
     usAIDTextContainer: {
-
+        marginBottom: -40
     },
     usAIDLogoContainer: {
-        width: 200,
+        width: 250,
         height: 180,
+        justifyContent: 'center',
     },
     usAidLogo: {
         flex: 1,
