@@ -4,6 +4,7 @@ import { MD3Theme, useTheme, Button, Icon, IconButton } from "react-native-paper
 import { FormField } from "./form-field";
 import { Control, UseFormReturn, useWatch, } from "react-hook-form";
 import { RowMeta } from "./form-screen";
+import { useState } from "react";
 
 export type FormRowProps = {
     isFocused: boolean;
@@ -22,6 +23,9 @@ export type FormRowProps = {
     displayRowNumbers: boolean
     meta: RowMeta;
 };
+
+const ROWNUMBER_WIDTH = 20;
+const COLUMN_GAP = 12;
 
 export function FormEntryRow({
     isFocused,
@@ -46,6 +50,14 @@ export function FormEntryRow({
 
     const row = form.watch(`config.screens.${screenIndex}.rows.${index}`);
     const fields = form.watch(`config.screens.${screenIndex}.rows.${index}.fields`);
+    const fieldsPerRow = form.watch(`config.screens.${screenIndex}.rows.${index}.maxFields`);
+    
+    const [viewSize, setViewSize] = useState({ width: 0 });
+
+    const onLayout = (event) => {
+      const { width, } = event.nativeEvent.layout;
+      setViewSize({ width, });
+    };
 
     if (!row?.fields) {
         console.log('NO FIELDS')
@@ -68,33 +80,35 @@ export function FormEntryRow({
         onFieldPress(index, fieldIndex);
     } 
 
-    const maxFields = isNaN(Number(row.maxFields)) ? 4 : Number(row.maxFields) || 4;
-    const fieldCount = fields.length;
-    const rows = Math.ceil(fieldCount / maxFields);
-    const fieldsPerRow = Math.ceil(fieldCount / rows);
-    const flexBasis: DimensionValue = `${100 / fieldsPerRow}%`;    
+    const maxFields = isNaN(Number(fieldsPerRow)) ? 4 : Number(row.maxFields) || 4;
 
     return (
         <>
             <TouchableOpacity onPress={handlePress} style={styles.container}>
                 <View style={styles.row}>
-                    <View style={{ justifyContent: 'center', paddingRight: 4, paddingTop: 6, height: 54, width: 20, alignItems: 'flex-start',  }}>
+                    <View style={{ justifyContent: 'center', paddingRight: 4, paddingTop: 6, height: 54, width: ROWNUMBER_WIDTH, alignItems: 'flex-start',  }}>
                         <Text> { displayRowNumbers && meta.isInGroup ? meta.groupRowIndex : '' }</Text>
                     </View>     
-                    <View style={{ ...styles.fieldRow, ...focusedStyle,}}>                
+                    <View style={{ ...styles.fieldRow, ...focusedStyle,}} onLayout={onLayout}>                
                         {
-                            fields.map((field, fieldIndex) => (
-                                <View style={{ flex: 1, flexBasis }} key={field.entryKey}>
-                                    <FormField                                        
-                                        config={field}
-                                        onPress={() => handleFieldPress(fieldIndex)}
-                                        onChange={(field, value) => onFieldChange(field, value)}
-                                        isDisabled={isDesignMode}
-                                        control={control}
-                                        // containerStyle={{ flexBasis, }}
-                                    />
-                                </View>
-                            ))
+                            fields.map((field, fieldIndex) => {
+                                const flexBasis: DimensionValue = `${100 / fieldsPerRow}%`;
+                                const isLastOnRow = fieldIndex + 1 === fieldsPerRow
+                                    || (fieldIndex + 1) % maxFields === 0;
+
+                                return (
+                                    <View style={{ flex: 1, position: 'relative', flexBasis }} key={field.entryKey}>
+                                        <FormField                                        
+                                            config={field}
+                                            onPress={() => handleFieldPress(fieldIndex)}
+                                            onChange={(field, value) => onFieldChange(field, value)}
+                                            isDisabled={isDesignMode}
+                                            control={control}
+                                            containerStyle={{ paddingRight: isLastOnRow ? 0 : 12, }}
+                                        />
+                                    </View>
+                                );
+                            })
                         }
                     </View>
                     { !canDeleteRow && <View style={styles.deleteButtonContainer} /> }
@@ -154,7 +168,7 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         position: 'relative',
         flex: 1,
         // width: '100%',
-        columnGap: 12,
+        // columnGap: COLUMN_GAP,
     },
     column: {
         flexDirection: 'column',
