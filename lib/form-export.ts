@@ -174,6 +174,7 @@ async function mergeAndExportForms(entries: FormEntryV2[]) {
 
    for (let i=0; i<entries.length; i++) {
     const columns = getExportColumns(entries[i]);
+    console.log(columns)
     const entryCSV = writeColumnsCSV(columns, i > 0);
     csv += entryCSV;
    }

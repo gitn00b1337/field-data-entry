@@ -37,5 +37,9 @@ export function sanitizeConfig(config: FormConfig): FormConfig {
 
     newConfig.globalFields = newConfig.globalFields || [];
     
+    for (const field of newConfig.globalFields) {
+        field.exportable = field.type !== 'PLAYBACK_BUTTON';
+    }
+    
     return newConfig;
 }

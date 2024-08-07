@@ -372,7 +372,11 @@ export async function loadEntry(entryId: string): Promise<FormEntryV2 | undefine
             // first save isnt quite accurate, but since
             // its not exposed can just correct the id here
             entry.id = row.id;
+
+            entry.config = sanitizeConfig(entry.config);
         }
+
+        
         return entry;
     } catch (e) {
         console.error(e);

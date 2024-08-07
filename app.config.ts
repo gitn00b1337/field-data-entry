@@ -4,7 +4,7 @@ const IS_DEV = process.env.APP_VARIANT === 'development';
 export default {
     name: IS_DEV ? "Field Data Collection (Dev)" : "Field Data Collection",
     slug: "field-data-collection",
-    version: "1.1.0",
+    version: "1.2.0",
     orientation: "default",
     scheme: "data-entry",
     icon: "./assets/icon.png",
@@ -26,7 +26,7 @@ export default {
         permissions: [
             "android.permission.RECORD_AUDIO"
         ],
-        versionCode: 6
+        versionCode: 7
     },
     plugins: [
         [

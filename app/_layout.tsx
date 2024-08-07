@@ -50,7 +50,7 @@ export default function App() {
         router.back();
     }
     else {
-        router.navigate('/');
+        router.replace('/');
     }        
 }
 

@@ -150,7 +150,7 @@ export function TemplateForm({ initialValues, onSubmit }: TemplateFormProps) {
             router.back();
         }
         else {
-            router.push('/');
+            router.navigate('/');
         }
     }
 

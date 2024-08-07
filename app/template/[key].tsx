@@ -30,7 +30,7 @@ export default function Config() {
     }, []);
 
     if (!configId) {
-        router.push('/');
+        router.navigate('/');
         return null;
     }
 
