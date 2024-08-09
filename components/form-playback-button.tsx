@@ -147,47 +147,44 @@ export function FormPlaybackButton({
             onPress={handlePlayPress}
             onLongPress={handleLongPress}
         >
-            <View style={styles.labelContainer}>
-                <Text style={styles.label}>{label || 'Play'}</Text>
-            </View>
-            <View style={styles.iconContainer}>
-                <Icon
-                    source={isPlaying ? 'pause' : 'play'}
-                    size={24}
-                    color={iconColor}
-                />
-            </View>
+        <View style={styles.labelContainer}>
+            <Text style={styles.label}>{label || 'Play'}</Text>
+        </View>
+        <View style={styles.iconContainer}>
+            <Icon
+            source={isPlaying ? 'pause' : 'play'}
+            size={24}
+            color={iconColor}
+            />
+        </View>
         </TouchableOpacity>
     )
 }
 
 const makeStyles = (theme: MD3Theme) => StyleSheet.create({
-    labelContainer: {
-        flex: 1,
-        alignItems: 'center',
-        alignContent: 'center',
-        justifyContent: 'center'
-    },
-    label: {
-        verticalAlign: 'middle',
-    },
-    iconContainer: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: 20,
-    },
     container: {
         backgroundColor: '#fff',
         borderRadius: theme.roundness,
         paddingHorizontal: 12,
         borderColor: '#DDDDDD',
         borderWidth: 1,
-        maxWidth: 120,
-        width: 100,
+        minWidth: 100,
         height: 40,
-        justifyContent: 'flex-start',
-        alignItems: 'stretch',
-        alignContent: 'stretch',
         flexDirection: 'row',
-    },
+        alignItems: 'center',
+      },
+      labelContainer: {
+        flexGrow: 1, // Allow label container to take up remaining space
+        justifyContent: 'center',
+        marginRight: 8, // Add spacing between label and icon
+      },
+      label: {
+        textAlign: 'center', // Center the text within its container
+        flexShrink: 1, // Allow text to shrink if needed
+        flexWrap: 'wrap', // Wrap text to a new line if it's too long
+      },
+      iconContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
 })

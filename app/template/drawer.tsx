@@ -281,8 +281,8 @@ const makeStyles = (theme: MD3Theme) => StyleSheet.create({
         paddingBottom: 52
     },
     landscapeDrawer: {
-        width: '30%',
-        maxWidth: 450,
+        width: '35%',
+        // maxWidth: 450,
         position: 'relative',
         minHeight: '100%',
         paddingBottom: 52,
